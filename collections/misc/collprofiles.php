@@ -360,6 +360,12 @@ if ($SYMB_UID) {
 									<?= $LANG['EDIT_EXISTING'] ?>
 								</a>
 							</li>
+							<!-- add a bullet point to link to the image batch -->
+							<li>
+								<a href="../quickentry/transcribe.php?collid=<?php echo $collid;?>">
+									<?php echo (isset($LANG['IMAGE_BATCH']) ? $LANG['IMAGE_BATCH'] : 'Image Transcription Quick Entry'); ?>
+								</a>
+							</li>
 							<li>
 								<a href="../editor/batchdeterminations.php?collid=<?= $collid ?>">
 									<?= $LANG['ADD_BATCH_DETER'] ?>

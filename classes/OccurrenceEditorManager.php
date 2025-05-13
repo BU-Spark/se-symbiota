@@ -72,7 +72,8 @@ class OccurrenceEditorManager {
 			'associatedtaxa' => 's',
 			'verbatimattributes' => 's',
 			'behavior' => 's',
-			'vitality' => 's',
+			// NOTE: this is commented to let the code work with current database
+			// 'vitality' => 's',
 			'dynamicproperties' => 's',
 			'reproductivecondition' => 's',
 			'cultivationstatus' => 's',
@@ -120,7 +121,26 @@ class OccurrenceEditorManager {
 			'processingstatus' => 's',
 			'recordenteredby' => 's',
 			'observeruid' => 'n',
-			'dateentered' => 'd'
+			'dateentered' => 'd',
+			// for quick entry form
+			'accesNum' => 'n', 
+			'filedUnder' => 's', 
+			'currName' => 's', 
+			'idQualifier' => 's',
+			'detText' => 's', 
+			'provenance' => 's', 
+			'container' => 's', 
+			'collTrip' => 's', 
+			'geoWithin' => 's',
+			'highGeo' => 's', 
+			'frequency' => 's', 
+			'prepMethod' => 's', 
+			'format' => 's', 
+			'verbLat' => 's', 
+			'verbLong' => 's', 
+			'method' => 's', 
+			'modified' => 's', 
+			'dateLastModified' => 's', 
 		);
 		$this->fieldArr['omoccurpaleo'] = array(
 			'eon',
@@ -184,7 +204,8 @@ class OccurrenceEditorManager {
 		}
 	}
 
-	private function getDynamicPropertiesArr() {
+	// Make this public so the quick etnry form can also use this function 
+	public function getDynamicPropertiesArr() {
 		$retArr = array();
 		$propArr = array();
 		if (!empty($this->collMap['dynamicproperties'])) {
@@ -2385,30 +2406,61 @@ class OccurrenceEditorManager {
 
 	public function getImageMap($imgId = 0) {
 		$imageMap = array();
-		if ($this->occid) {
-			$sql = 'SELECT mediaID, url, thumbnailurl, originalurl, caption, creator, creatorUid, sourceurl, copyright, notes, occid, username, sortOccurrence, initialtimestamp FROM media ';
-			if ($imgId) $sql .= 'WHERE AND (mediaID = ' . $imgId . ') ';
-			else $sql .= 'WHERE mediaType = "image" AND (occid = ' . $this->occid . ') ';
-			$sql .= 'ORDER BY sortOccurrence';
+		// NOTE: this is commented to let the code work with current database
+		// if ($this->occid) {
+		// 	$sql = 'SELECT mediaID, url, thumbnailurl, originalurl, caption, creator, creatorUid, sourceurl, copyright, notes, occid, username, sortOccurrence, initialtimestamp FROM media ';
+		// 	if ($imgId) $sql .= 'WHERE AND (mediaID = ' . $imgId . ') ';
+		// 	else $sql .= 'WHERE mediaType = "image" AND (occid = ' . $this->occid . ') ';
+		// 	$sql .= 'ORDER BY sortOccurrence';
+		// 	//echo $sql;
+		// 	$result = $this->conn->query($sql);
+		// 	while ($row = $result->fetch_object()) {
+		// 		$imageMap[$row->mediaID]['url'] = $row->url;
+		// 		$imageMap[$row->mediaID]['tnurl'] = $row->thumbnailurl;
+		// 		$imageMap[$row->mediaID]['origurl'] = $row->originalurl;
+		// 		$imageMap[$row->mediaID]['caption'] = $row->caption;
+		// 		$imageMap[$row->mediaID]['creator'] = $row->creator;
+		// 		$imageMap[$row->mediaID]['creatorUid'] = $row->creatorUid;
+		// 		$imageMap[$row->mediaID]['sourceurl'] = $row->sourceurl;
+		// 		$imageMap[$row->mediaID]['copyright'] = $row->copyright;
+		// 		$imageMap[$row->mediaID]['notes'] = $row->notes;
+		// 		$imageMap[$row->mediaID]['occid'] = $row->occid;
+		// 		$imageMap[$row->mediaID]['username'] = $row->username;
+		// 		$imageMap[$row->mediaID]['sort'] = $row->sortOccurrence;
+		// 	}
+		// 	$result->free();
+		// }
+		$this->cleanOutArr($imageMap);
+		return $imageMap;
+	}
+
+	// For quick entry form 
+	public function getImageInfo($imgId = 0){
+		$imageMap = Array();
+		if($this->occid){
+			$sql = 'SELECT imgid, url, sourceIdentifier, thumbnailurl, originalurl, caption, photographer, photographeruid, sourceurl, copyright, notes, occid, username, sortoccurrence, initialtimestamp FROM images ';
+			if($imgId) $sql .= 'WHERE (imgid = '.$imgId.') ';
+			else $sql .= 'WHERE (occid = '.$this->occid.') ';
+			$sql .= 'ORDER BY sortoccurrence';
 			//echo $sql;
+			// NOTE: imgid is used for our current database, but the latest Symbiota is uisng mediaID.  
 			$result = $this->conn->query($sql);
-			while ($row = $result->fetch_object()) {
-				$imageMap[$row->mediaID]['url'] = $row->url;
-				$imageMap[$row->mediaID]['tnurl'] = $row->thumbnailurl;
-				$imageMap[$row->mediaID]['origurl'] = $row->originalurl;
-				$imageMap[$row->mediaID]['caption'] = $row->caption;
-				$imageMap[$row->mediaID]['creator'] = $row->creator;
-				$imageMap[$row->mediaID]['creatorUid'] = $row->creatorUid;
-				$imageMap[$row->mediaID]['sourceurl'] = $row->sourceurl;
-				$imageMap[$row->mediaID]['copyright'] = $row->copyright;
-				$imageMap[$row->mediaID]['notes'] = $row->notes;
-				$imageMap[$row->mediaID]['occid'] = $row->occid;
-				$imageMap[$row->mediaID]['username'] = $row->username;
-				$imageMap[$row->mediaID]['sort'] = $row->sortOccurrence;
+			while($row = $result->fetch_object()){
+				$imageMap[$row->imgid]['url'] = $row->sourceIdentifier;
+				$imageMap[$row->imgid]['tnurl'] = $row->thumbnailurl;
+				$imageMap[$row->imgid]['origurl'] = $row->originalurl;
+				$imageMap[$row->imgid]['caption'] = $this->cleanOutStr($row->caption);
+				$imageMap[$row->imgid]['photographer'] = $this->cleanOutStr($row->photographer);
+				$imageMap[$row->imgid]['photographeruid'] = $row->photographeruid;
+				$imageMap[$row->imgid]['sourceurl'] = $row->sourceurl;
+				$imageMap[$row->imgid]['copyright'] = $this->cleanOutStr($row->copyright);
+				$imageMap[$row->imgid]['notes'] = $this->cleanOutStr($row->notes);
+				$imageMap[$row->imgid]['occid'] = $row->occid;
+				$imageMap[$row->imgid]['username'] = $this->cleanOutStr($row->username);
+				$imageMap[$row->imgid]['sort'] = $row->sortoccurrence;
 			}
 			$result->free();
 		}
-		$this->cleanOutArr($imageMap);
 		return $imageMap;
 	}
 
@@ -2733,6 +2785,46 @@ class OccurrenceEditorManager {
 
 	public function getOccId() {
 		return $this->occid;
+	}
+	
+	// For quick entry form
+	public function getImgIDs($batchID) {
+		$imgIDs = array();
+		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
+		$result = $this->conn->query($query);
+		while ($row = $result->fetch_assoc()) {
+			$imgIDs[] = $row['imgid'];
+		}
+		$result->free();
+		return $imgIDs;
+	}
+	
+	public function getBarcode($imgID) {
+		$query = "SELECT barcode FROM images_barcode WHERE imgid = '$imgID' LIMIT 1";
+		$result = $this->conn->query($query);
+		if ($result && $row = $result->fetch_assoc()) {
+			$barcode = $row['barcode'];
+		} else {
+			$barcode = null; 
+		}
+		
+		$result->free();
+		return $barcode;
+	}
+
+	public function getOneOccID($imgId) {
+		$occid = false;
+		$query = "SELECT occid FROM images WHERE imgid = '$imgId' LIMIT 1";
+		$result = $this->conn->query($query);
+
+		if ($result && $row = $result->fetch_assoc()) {
+			$occid = $row['occid'];
+		} else {
+			$occid = null;
+		}
+		$result->free();
+
+		return $occid;
 	}
 
 	public function setOccIndex($index) {
