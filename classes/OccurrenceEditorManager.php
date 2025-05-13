@@ -2857,20 +2857,6 @@ class OccurrenceEditorManager {
 		return $barcode;
 	}
 
-	// we use the notes column to store the OCR results temporarily. You should update this to the right column afterwards
-	public function getOCRResult($imgID) {
-		$query = "SELECT notes FROM images WHERE imgid = '$imgID' LIMIT 1";
-		$result = $this->conn->query($query);
-		if ($result && $row = $result->fetch_assoc()) {
-			$notes = $row['notes'];
-		} else {
-			$notes = null; 
-		}
-		
-		$result->free();
-		return $notes;
-	}
-
 	public function getOneOccID($imgId) {
 		$occid = false;
 		$query = "SELECT occid FROM images WHERE imgid = '$imgId' LIMIT 1";

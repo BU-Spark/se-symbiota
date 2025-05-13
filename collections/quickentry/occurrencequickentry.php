@@ -46,7 +46,6 @@ if (isset($_REQUEST['batchid'])) {
 	$currentImgId = $_REQUEST['imgid'];
 	$currentImgIndex = $_REQUEST['imgindex'];
 	$occData = array();
-	$ocrResults =  $occManager->getOCRResult($lastImgId);
 	// occData is a hashtable, which has imgid as key, and occid as value
 	foreach ($imgIDs as $imgID) {
         $occData[$imgID] = $occManager->getOneOccID($imgID);
@@ -78,7 +77,6 @@ $moduleActivation = array();
 $statusStr = '';
 $navStr = '';
 $isEditor = 0;
-$notesValue = '';
 
 if($SYMB_UID){
 	//Set variables
@@ -176,7 +174,11 @@ if($SYMB_UID){
 		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
 		$updateSuccess = $occManager->updateLastEdited($batchId, $currentImgId);
 	} 
-
+	// save TODO: need to update this correctly
+	elseif ($action == 'saveOCR'){
+		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
+		$updateSuccess = $occManager->updateLastEdited($batchId, $currentImgId);
+	}
 	if($isEditor){
 		//Available to full editors and taxon editors
 		if($action == 'submitDetermination'){
@@ -341,6 +343,21 @@ if($SYMB_UID){
 			}
 		}
 	}
+
+	// save TODO: need to update this correctly
+	// if ($action == 'SaveOCR') {	
+	// 	// Save parsed OCR results into ocr_results table
+	// 	// $statusStr = $occManager->editOccurrence($_POST,$isEditor);
+	// 	$ocrSaved = $occManager->saveOCRResultsToDB(
+	// 		$_POST['imgid'],
+	// 		$_POST['collid'],
+	// 		$_POST['rawtext']
+	// 	);
+	
+	// 	if (!$ocrSaved) {
+	// 		error_log("Failed to save OCR results: " . implode("; ", $occManager->errorArr));
+	// 	}
+	// }
 
 	if($goToMode){
 		//Adding new record, override query form and prime for current user's dataentry for the day
