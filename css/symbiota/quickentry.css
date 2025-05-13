@@ -1,0 +1,93 @@
+@import "variables.css";
+
+*{
+    box-sizing: border-box;
+    font-family: sans-serif;
+    font-size: 12px;
+}
+h2{
+    color: var(--darkest-color);
+    font-weight: 700;
+    font-family: var(--heading-font-family);
+}
+#titleDiv {
+    font-size: 20px;
+    margin: 10px;
+    font-weight: 700;
+}
+#top {
+    margin-bottom: 10px;
+    margin-right: 17%;
+    margin-left: 17%;
+}
+.column{
+    float: left;
+    padding:10px;
+}
+.left{
+    width: 50%;
+}
+.right{
+    width: 50%;
+}
+.info{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 8px;
+}
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.function-bar{
+    border:1px solid black; 
+    display: flex;
+    align-items: center;
+}
+button{
+    color:white;
+    background-color: var(--darkest-color);
+}
+.btn label{
+    color:black;
+    background-color: var(--darkest-color);
+    border-style: solid;
+    border-color: black;
+}
+.data{
+    border-style: solid;
+    border-color: black;
+}
+.login-info{
+    border-style: solid;
+    border-color: black;
+}
+#editdiv {
+    margin-left:auto;
+    margin-right:auto;
+    width:960px;
+}
+.field-block {
+    margin: 5px 0px;
+    display: flex;
+}
+.field-label {
+    text-align: left;
+    margin-left: 5px;
+    width: 120px;
+}
+.title{
+    display: block;
+    width: 100%;
+}
+
+.highlight-label {
+    font-weight: bold;
+    color: black;
+    background-color: var(--bright-color);
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.3s, color 0.3s;
+}
