@@ -159,6 +159,17 @@ function verifyQueryForm(f){
 	return true;
 }
 
+function toggleDetail(){
+	var btn = document.getElementById("detail-btn");
+	if (btn.value === "detailed") {
+		btn.value = "minimal";
+		btn.innerHTML = "Minimal";
+	} else {
+		btn.value = "detailed";
+		btn.innerHTML = "Detailed";
+	}
+}
+
 function submitQueryForm(qryIndex){
 	var f = document.queryform;
 	if(qryIndex == 'forward' || qryIndex == 'back'){
@@ -191,6 +202,12 @@ function submitQueryTable(f){
 	f.occidlist.value = "";
 	//f.submit();
 	return true;
+}
+
+// For quick entry form 
+function navigateToURL(coll) {
+    var url = "../editor/transcribe.php?collid=" + coll;
+    window.location.href = url;
 }
 
 function setOrderBy(formObject){

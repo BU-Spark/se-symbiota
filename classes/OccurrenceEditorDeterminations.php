@@ -18,6 +18,78 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
  		parent::__destruct();
 	}
 
+	public function getImgIndex($imgID) {
+		$imgIndex = false;
+		$query = "SELECT ordinal FROM batch_XREF WHERE imgid = '$imgID' LIMIT 1";
+		$result = $this->conn->query($query);
+
+		if ($result && $row = $result->fetch_assoc()) {
+			$imgIndex = $row['ordinal'];
+		}
+		$result->free();
+
+		return $imgIndex;
+	}
+
+	public function getlastEdit($batchID) {
+		$lastEditImgId = false;
+		$query = "SELECT last_edited FROM batch WHERE batchID = '$batchID' LIMIT 1";
+		$result = $this->conn->query($query);
+
+		if ($result && $row = $result->fetch_assoc()) {
+			$lastEditImgId = $row['last_edited'];
+		}
+		$result->free();
+
+		return $lastEditImgId;
+	}
+
+	public function getBatch($collid) {
+		$batchValues = array();	
+		$query = "SELECT batchID FROM batch WHERE collID = '$collid'";
+        $result = $this->conn->query($query);
+        while ($row = $result->fetch_assoc()) {
+            $batchValues[] = $row['batchID'];
+        }
+        $result->free();
+        return $batchValues;
+	}
+
+	public function getBatchName($batchID) {
+		$nameValues = array();
+		$query = "SELECT batch_name FROM batch WHERE batchID = '$batchID'";
+		$result = $this->conn->query($query);
+		while ($row = $result->fetch_assoc()) {
+			$nameValues[] = $row['batch_name'];
+		}
+		$result->free();
+		return $nameValues;
+	}
+
+	public function getImgIDs($batchID) {
+		$imgIDs = array();
+		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
+		$result = $this->conn->query($query);
+		while ($row = $result->fetch_assoc()) {
+			$imgIDs[] = $row['imgid'];
+		}
+		$result->free();
+		return $imgIDs;
+	}
+
+	public function getOneOccID($imgID) {
+		$occid = false;
+		$query = "SELECT occid FROM images WHERE imgid = '$imgID' LIMIT 1";
+		$result = $this->conn->query($query);
+
+		if ($result && $row = $result->fetch_assoc()) {
+			$occid = $row['occid'];
+		}
+		$result->free();
+
+		return $occid;
+	}
+
 	public function getDetMap($identBy, $dateIdent, $sciName){
 		$retArr = array();
 		$hasCurrent = 0;
