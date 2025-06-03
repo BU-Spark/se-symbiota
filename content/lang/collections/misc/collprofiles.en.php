@@ -24,6 +24,7 @@ $LANG['ADD_NEW_OCCUR'] = 'Add New Occurrence Record';
 $LANG['CREATE_NEW_REC'] = 'Create New Records Using Image';
 $LANG['SKELETAL'] = 'Add Skeletal Records';
 $LANG['EDIT_EXISTING'] = 'Edit Existing Occurrence Records';
+$LANG['QUICK_ENTRY_FORM'] = 'Quick Entry Form';
 $LANG['ADD_BATCH_DETER'] = 'Add Batch Determinations/Nomenclatural Adjustments';
 $LANG['PRINT_LABELS'] = 'Print Specimen Labels';
 $LANG['PRINT_ANNOTATIONS'] = 'Print Annotations Labels';
