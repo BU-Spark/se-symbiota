@@ -32,25 +32,28 @@ if($crowdSourceMode){
 	$occManager->setCrowdSourceMode(1);
 }
 
-// get all image ids from the images table
-$imgIDs = $occManager->getImgIDs();
-$firstImgId = $imgIDs[0];
-$firstBarcode = $occManager->getBarcode($firstImgId);
-$firstIndex = 0;
-$lastImgId = end($imgIDs);
-$lastBarcode = $occManager->getBarcode($lastImgId);
-$lastIndex = count($imgIDs) - 1;
-$imgNum = count($imgIDs);
-$currentImgId = $_REQUEST['imgid'];
-$currentImgIndex = $_REQUEST['imgindex'];
-$occData = array();
-// occData is a hashtable, which has imgid as key, and occid as value
-foreach ($imgIDs as $imgID) {
-	$occData[$imgID] = $occManager->getOneOccID($imgID);
-}
-$firstOccId = $occData[$firstImgId];
-$lastOccId = $occData[$lastImgId];
-$barcode = $occManager->getBarcode($currentImgId);
+if (isset($_REQUEST['batchid'])) {
+    $batchId = $_REQUEST['batchid'];
+    // Use $batchId as needed
+	$imgIDs = $occManager->getImgIDs($batchId);
+	$firstImgId = $imgIDs[0];
+	$firstBarcode = $occManager->getBarcode($firstImgId);
+	$firstIndex = 0;
+	$lastImgId = end($imgIDs);
+	$lastBarcode = $occManager->getBarcode($lastImgId);
+	$lastIndex = count($imgIDs) - 1;
+	$imgNum = count($imgIDs);
+	$currentImgId = $_REQUEST['imgid'];
+	$currentImgIndex = $_REQUEST['imgindex'];
+	$occData = array();
+	// occData is a hashtable, which has imgid as key, and occid as value
+	foreach ($imgIDs as $imgID) {
+        $occData[$imgID] = $occManager->getOneOccID($imgID);
+    }
+	$firstOccId = $occData[$firstImgId];
+	$lastOccId = $occData[$lastImgId];
+	$barcode = $occManager->getBarcode($currentImgId);
+} 
 
 //Sanitation
 if(!is_numeric($occId)) $occId = '';
@@ -169,10 +172,12 @@ if($SYMB_UID){
 	include_once 'editProcessor.php';
 	if($action == 'saveOccurEdits'){
 		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
+		$updateSuccess = $occManager->updateLastEdited($batchId, $currentImgId);
 	} 
 	// save TODO: need to update this correctly
 	elseif ($action == 'saveOCR'){
 		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
+		$updateSuccess = $occManager->updateLastEdited($batchId, $currentImgId);
 	}
 	if($isEditor){
 		//Available to full editors and taxon editors
@@ -444,20 +449,20 @@ if($SYMB_UID){
 
 	if($imgNum !== false){
 		$navStr = '<b>';
-		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($firstImgId).', '.($firstIndex).', '.($firstOccId).', '.($firstIndex).')" title="'.(isset($LANG['FIRST_REC'])?$LANG['FIRST_REC']:'First Record').'">';
+		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($firstImgId).', '.($firstIndex).', '.($firstBarcode).', '.($firstOccId).', '.($firstIndex).')" title="'.(isset($LANG['FIRST_REC'])?$LANG['FIRST_REC']:'First Record').'">';
 		$navStr .= '|&lt;';
 		if($currentImgIndex > 0) $navStr .= '</a>';
 		$navStr .= '&nbsp;&nbsp;&nbsp;&nbsp;';
-		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($prevImgid).', '.($currentImgIndex-1).', '.($prevOccid).', '.($currentImgIndex-1).')" title="'.(isset($LANG['PREV_REC']) ? $LANG['PREV_REC'] : 'Previous Record').'">';
+		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($prevImgid).', '.($currentImgIndex-1).', '.($prevBarcode).', '.($prevOccid).', '.($currentImgIndex-1).')" title="'.(isset($LANG['PREV_REC']) ? $LANG['PREV_REC'] : 'Previous Record').'">';
 		$navStr .= '&lt;&lt;';
 		if($currentImgIndex > 0) $navStr .= '</a>';
 		$recIndex = ($currentImgIndex<$imgNum?($currentImgIndex + 1):'*');
 		$navStr .= '&nbsp;&nbsp;| '.($recIndex).' of '.($imgNum).' |&nbsp;&nbsp;';
-		if ($currentImgIndex < $imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($nextImgid).', '.($currentImgIndex+1).', '.($nextOccid).', '.($currentImgIndex+1).')" title="'.(isset($LANG['NEXT_REC']) ? $LANG['NEXT_REC']:'Next Record').'">';
+		if ($currentImgIndex < $imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($nextImgid).', '.($currentImgIndex+1).', '.($nextBarcode).', '.($nextOccid).', '.($currentImgIndex+1).')" title="'.(isset($LANG['NEXT_REC']) ? $LANG['NEXT_REC']:'Next Record').'">';
 		$navStr .= '&gt;&gt;';
 		if($occIndex<$imgNum-1) $navStr .= '</a>';
 		$navStr .= '&nbsp;&nbsp;&nbsp;&nbsp;';
-		if($occIndex<$imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($lastImgId).', '.($imgNum-1).', '.($lastOccId).', '.($imgNum-1).')" title="'.(isset($LANG['LAST_REC'])?$LANG['LAST_REC']:'Last Record').'">';
+		if($occIndex<$imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($lastImgId).', '.($imgNum-1).', '.($lastBarcode).', '.($lastOccId).', '.($imgNum-1).')" title="'.(isset($LANG['LAST_REC'])?$LANG['LAST_REC']:'Last Record').'">';
 		$navStr .= '&gt;|';
 		if($occIndex<$imgNum-1) $navStr .= '</a> ';
 		$navStr .= '</b>';
@@ -549,11 +554,13 @@ else{
 					}
 				});
 			}
-			function navigateToRecordNew(crowdSourceMode, gotomode, collId, imgId, imgIndex, occId, occIndex) {
+			function navigateToRecordNew(crowdSourceMode, gotomode, collId, batchId, imgId, imgIndex, barcode, occId, occIndex) {
+				// If we have correct dataset, the barcode should not be null
+				// if(barcode == null && occId == null) {
 				if(occId == null) {
 					var url = 'occurrencequickentry.php?gotomode=' + gotomode + '&collid=' + collId + '&imgid=' + imgId + '&imgindex=' + imgIndex;
 				} else {
-					var url = 'occurrencequickentry.php?csmode=' + crowdSourceMode + '&collid=' + collId + '&imgid=' + imgId + '&imgindex=' + imgIndex + '&occid=' + occId + '&occindex=' + occIndex;
+					var url = 'occurrencequickentry.php?csmode=' + crowdSourceMode + '&collid=' + collId +'&batchid=' + batchId + '&imgid=' + imgId + '&imgindex=' + imgIndex + '&barcode=' + barcode + '&occid=' + occId + '&occindex=' + occIndex;
 				}
 				window.location.href = url;
 				event.preventDefault();
@@ -611,10 +618,11 @@ else{
 					var crowdSourceMode = <?php echo $crowdSourceMode; ?>;
 					var gotomode = <?php echo $goToMode; ?>;
 					var collId = <?php echo $collId; ?>;
+					var batchId = <?php echo $batchId; ?>;
 					var occIndex = pageNumber - 1; 
 
 					// Call the navigateToRecordNew function with the calculated parameters
-					navigateToRecordNew(crowdSourceMode, gotomode, collId, imgId, occIndex, occId, occIndex);
+					navigateToRecordNew(crowdSourceMode, gotomode, collId, batchId, imgId, occIndex, barcode, occId, occIndex);
 				} else {
 					// Handle invalid page number input
 					alert(pageNumber);
@@ -1028,6 +1036,7 @@ else{
 									<div id="bottomSubmitDiv">
 									<input type="hidden" name="csmode" value="<?php echo $crowdSourceMode; ?>">
 									<input type="hidden" name="collid" value="<?php echo $collId; ?>">
+									<input type="hidden" name="batchid" value="<?php echo $batchId; ?>">
 									<input type="hidden" name="imgid" value="<?php echo $imgId; ?>">
 									<input type="hidden" name="imgindex" value="<?php echo $currentImgIndex; ?>">
 									<input type="hidden" name="barcode" value="<?php echo $barcode; ?>">
@@ -1042,7 +1051,7 @@ else{
 													<button 
 														type="submit" 
 														value="Previous" 
-														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $prevImgid . ', ' . ($currentImgIndex-1) . ', ' . $prevOccid . ', ' . ($currentImgIndex-1); ?>)">
+														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $batchId . ', ' . $prevImgid . ', ' . ($currentImgIndex-1) . ', ' . $prevBarcode . ', ' . $prevOccid . ', ' . ($currentImgIndex-1); ?>)">
 														Previous
 													</button>
 													<a href="../misc/collprofiles.php?collid=<?php echo $collId; ?>&emode=1" >
@@ -1051,7 +1060,7 @@ else{
 													<button 
 														type="submit" 
 														value="Next" 
-														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $nextImgid . ', ' . ($currentImgIndex+1) . ', ' . $nextOccid . ', ' . ($currentImgIndex+1); ?>)">
+														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $batchId . ', ' . $nextImgid . ', ' . ($currentImgIndex+1) . ', ' . $nextBarcode . ', ' . $nextOccid . ', ' . ($currentImgIndex+1); ?>)">
 														Next
 													</button>
 													<input type="hidden" name="occindex" value="<?php echo is_numeric($occIndex)?$occIndex:''; ?>" />

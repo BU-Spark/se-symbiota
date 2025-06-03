@@ -2788,9 +2788,9 @@ class OccurrenceEditorManager {
 	}
 	
 	// For quick entry form
-	public function getImgIDs() {
+	public function getImgIDs($batchID) {
 		$imgIDs = array();
-		$query = "SELECT imgid FROM images";
+		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
 		$result = $this->conn->query($query);
 		while ($row = $result->fetch_assoc()) {
 			$imgIDs[] = $row['imgid'];
