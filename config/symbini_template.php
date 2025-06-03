@@ -107,6 +107,11 @@ if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERV
 	$COOKIE_SECURE = true;
 }
 
+$availalbe_OCR = [
+    'name' => 'Display Name',
+    // add here if there are more OCR models
+];
+
 //Base code shared by all pages; leave as is
 include_once('symbbase.php');
 /* --DO NOT ADD ANY EXTRA SPACES BELOW THIS LINE-- */
