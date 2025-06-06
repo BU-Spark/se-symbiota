@@ -282,3 +282,352 @@ function nextRawText(imgCnt,fragCnt){
 	ocrFragIndex = fragCnt;
 	return false;
 }
+
+function quickEntryOcrImage(ocrButton, imgidVar, imgCnt, imgURl) {
+	console.log("Function quickEntryOcrImage called");
+	console.log(imgURl);
+	imgCnt = 0; // Reset image counter
+	ocrButton.disabled = true; // Disable button to prevent multiple clicks
+
+	// Show loading spinner
+	let wcElem = document.getElementById("workingcircle-tess-" + imgCnt);
+	wcElem.style.display = "inline";
+
+	// Get selected OCR 
+	let target = document.getElementById("ocr-method").value;
+
+	let ocrUrl = "";
+	if (target === "external") {
+		ocrUrl = "../quickentry/rpc/externalocr.php";
+	} else if (target === "others") {
+		ocrUrl = "../quickentry/rpc/otherocr.php";
+	} else {
+		ocrUrl = "../quickentry/rpc/ocrimage.php";
+	}
+
+	$.ajax({
+		type: "POST",
+		url: ocrUrl,
+		data: { imgid: imgidVar, target: target, imgurl: imgURl },
+		success: function(response) {
+			let decodedResponse;
+			if (typeof response === "string") {
+				try {
+					decodedResponse = JSON.parse(response);
+				} catch (e) {
+					console.error("Error parsing JSON response:", e);
+					decodedResponse = response;
+				}
+			} else {
+				decodedResponse = response;
+			}
+
+			let plainTextResponse = "";
+			if (typeof decodedResponse === "object") {
+				for (const [key, value] of Object.entries(decodedResponse)) {
+					plainTextResponse += `${key}: ${value}\n`;
+				}
+			} else {
+				plainTextResponse = decodedResponse;
+			}
+
+			// Store in global variable for later use
+			storedOcrResponse = plainTextResponse;
+
+			// Update the textarea
+			let rawtextBox = document.getElementById("rawtext");
+			rawtextBox.value = plainTextResponse;
+
+			wcElem.style.display = "none";
+			ocrButton.disabled = false;
+		},
+		error: function(xhr, status, error) {
+			storedOcrResponse = "OCR Failed";
+			console.error("External OCR Error: ", error);
+			wcElem.style.display = "none";
+			ocrButton.disabled = false;
+		}
+	});
+}
+
+let storedOcrResponse = "";
+// this state variable used to check the state of the textBox, either "needsValidation" or "ready" to populate the fieldss
+let updateState = "needsValidation";  
+
+function handleUpdateButtonClick() {
+	if (updateState === "needsValidation") {
+		confirmOCRresult();
+		updateState = "ready";
+		const btn = document.getElementById("updateButton");
+		btn.innerText = "Update Form";
+		btn.value = "Update Form";
+		return false;
+	} else {
+		return UpdateFromWithOCR();
+	}
+}
+
+// detect changes in the rawtext textarea
+window.addEventListener('DOMContentLoaded', function () {
+	const rawtextBox = document.getElementById("rawtext");
+	const updateButton = document.getElementById("updateButton");
+
+	if (rawtextBox) {
+		console.log("textBox udpated");
+		rawtextBox.addEventListener("input", function () {
+			updateState = "needsValidation";
+			updateButton.innerText = "Validate";
+			updateButton.value = "Validate";
+		});
+	}
+});
+
+function confirmOCRresult() {
+	if (event) event.preventDefault();
+
+	let rawtextBox = document.getElementById("rawtext");
+
+	if (!rawtextBox) {
+		console.error("No OCR result box found");
+		return false;
+	}
+
+	let rawText = rawtextBox.value.trim();
+
+	if (rawText === "") {
+		console.error("OCR result is empty");
+		alert("OCR result is empty!");
+		return false;
+	}
+
+	let lines = rawText.split("\n");
+	let allValid = true;
+
+	lines.forEach((line, index) => {
+		line = line.trim();
+		if (line === "") return; // skip empty lines
+
+		// Check for colon separator
+		if (!line.includes(": ")) {
+			console.error(`Line ${index + 1} is invalid: missing ': ' separator.`);
+			alert(`Error: Line ${index + 1} is invalid. Missing ': ' separator.`);
+			allValid = false;
+			return;
+		}
+
+		// Split key and value
+		let [key, ...valueParts] = line.split(": ");
+		let value = valueParts.join(": ").trim();
+
+		// Check key and value are not empty
+		if (!key.trim() || !value) {
+			console.error(`Line ${index + 1} is invalid: key or value is empty.`);
+			alert(`Error: Line ${index + 1} has an empty key or value.`);
+			allValid = false;
+			return;
+		}
+
+		// Check for unwanted quotes in key or value
+		if (key.includes('"') || value.includes('"')) {
+			console.error(`Line ${index + 1} is invalid: contains quotation marks.`);
+			alert(`Error: Line ${index + 1} should not contain quotation marks.`);
+			allValid = false;
+			return;
+		}
+	});
+
+	if (!allValid) {
+		console.warn("OCR confirmation aborted due to invalid format.");
+		return false;
+	}
+
+	storedOcrResponse = rawText;
+	console.log("OCR response confirmed");
+	return false;
+}
+
+function UpdateFromWithOCR() {
+	if (!storedOcrResponse || storedOcrResponse.trim() === "") {
+		console.error("No OCR response available");
+		return false;
+	}
+
+	let lines = storedOcrResponse.split("\n");
+	
+	lines.forEach(line => {
+		if (line.trim() === "") return;
+
+		// Split key and value by ": "
+		let [key, ...valueParts] = line.split(": ");
+		let value = valueParts.join(": ").trim();
+		let field = null;
+
+		if (key === 'recordedBy') {
+			field = document.getElementById("ffrecordedby");
+		} else if (key === 'location') {
+			field = document.getElementById("ffgeowithin");
+		} else if  (key === 'scientificName') {
+			field = document.getElementById("ffcurrname");
+		} else if  (key === 'eventDate') {
+			field = document.getElementById("ffeventdate");
+		} else if  (key === 'barcode') {
+			field = document.getElementById("barcode");
+		} else if  (key === 'institutionCode') {
+			field = document.getElementById("");
+		} else if  (key === 'image_path') {
+			field = document.getElementById("");
+		} else {
+			console.warn(`Unrecognized key '${key}' in OCR response.`);
+			return;
+		}
+
+		// Find the input field by key
+		if (field) {
+			field.value = value;
+			field.dispatchEvent(new Event("change"));
+
+			// Find the corresponding label and bold it
+			let fieldBlock = field.closest(".field-block");
+			if (fieldBlock) {
+				let label = fieldBlock.querySelector(".field-label");
+				if (label) {
+					label.classList.add("highlight-label");
+				}
+			}
+		}
+	});
+	return false;
+}
+
+function saveOCRResults() {
+    const rawTextElement = document.getElementById('rawtext');
+    const rawNotesElement = document.querySelector('input[name="rawnotes"]');
+    const rawSourceElement = document.querySelector('input[name="rawsource"]');
+    const imgId = document.querySelector('input[name="imgid"]').value;
+
+    if (!rawTextElement) {
+        alert('Error: Could not find the rawtext textarea.');
+        return false;
+    }
+
+    const rawTextContent = rawTextElement.value;
+    const rawNotesContent = rawNotesElement ? rawNotesElement.value : '';
+    const rawSourceContent = rawSourceElement ? rawSourceElement.value : '';
+
+    if (!imgId) {
+        alert('Error: Could not find the image ID.');
+        return false;
+    }
+
+    // Create an AJAX request to send the data to the server
+    const xhr = new XMLHttpRequest();
+    const url = '../../collections/quickentry/rpc/save_ocr_results.php';
+
+    const params = `imgid=${encodeURIComponent(imgId)}&rawtext=${encodeURIComponent(rawTextContent)}&rawnotes=${encodeURIComponent(rawNotesContent)}&rawsource=${encodeURIComponent(rawSourceContent)}`;
+
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            alert(xhr.responseText || 'OCR results saved successfully.');
+        } else {
+            alert('Error saving OCR results. Please try again.');
+            console.error('Request failed. Returned status of ' + xhr.status);
+        }
+    };
+
+    xhr.onerror = function() {
+        alert('There was a network error while trying to save.');
+        console.error('There was a network error.');
+    };
+
+    xhr.send(params);
+
+    return false;
+}
+
+$(function() {
+	$( "#zoomInfoDialog" ).dialog({
+		autoOpen: false,
+		position: { my: "left top", at: "right bottom", of: "#zoomInfoDiv" }
+	});
+
+	$( "#zoomInfoDiv" ).click(function() {
+		$( "#zoomInfoDialog" ).dialog( "open" );
+	});
+});
+function rotateImage(rotationAngle){
+	var imgObj = document.getElementById("activeimg-0");
+	var imgAngle = 0;
+	if(imgObj.style.transform){
+		var transformValue = imgObj.style.transform;
+		imgAngle = parseInt(transformValue.substring(7));
+	}
+	imgAngle = imgAngle + rotationAngle;
+	if(imgAngle < 0) imgAngle = 360 + imgAngle;
+	else if(imgAngle == 360) imgAngle = 0;
+	imgObj.style.transform = "rotate("+imgAngle+"deg)";
+	$(imgObj).imagetool("option","rotationAngle",imgAngle);
+	$(imgObj).imagetool("reset");
+}
+
+function floatImgPanel(){
+	$( "#labelProcFieldset" ).css('position', 'fixed');
+	$( "#labelProcFieldset" ).css('top', '20px');
+	var pos = $( "#labelProcDiv" ).position();
+	var posLeft = pos.left - $(window).scrollLeft();
+	$( "#labelProcFieldset" ).css('left', posLeft);
+	$( "#floatImgDiv" ).hide();
+	$( "#draggableImgDiv" ).hide();
+	$( "#anchorImgDiv" ).show();
+}
+
+function draggableImgPanel(){
+	$( "#labelProcFieldset" ).draggable();
+	$( "#labelProcFieldset" ).draggable({ cancel: "#labelprocessingdiv" });
+	$( "#labelHeaderDiv" ).css('cursor', 'move');
+	$( "#labelProcFieldset" ).css('top', '10px');
+	$( "#labelProcFieldset" ).css('left', '5px');
+	$( "#floatImgDiv" ).hide();
+	$( "#draggableImgDiv" ).hide();
+	$( "#anchorImgDiv" ).show();
+}
+
+function anchorImgPanel(){
+	$( "#draggableImgDiv" ).show();
+	$( "#floatImgDiv" ).show();
+	$( "#anchorImgDiv" ).hide();
+	$( "#labelProcFieldset" ).css('position', 'static');
+	$( "#labelProcFieldset" ).css('top', '');
+	$( "#labelProcFieldset" ).css('left', '');
+	try {
+		$( "#labelProcFieldset" ).draggable( "destroy" );
+		$( "#labelHeaderDiv" ).css('cursor', 'default');
+	}
+	catch(err) {
+	}
+}
+
+function nextProcessingImage() {
+	var imgCollectionInput = document.getElementById('image-collection-input');
+	var imgArr = JSON.parse(imgCollectionInput.value);
+	var currentImageIndex = parseInt(document.getElementById('current-image-index').textContent);
+	var totalImages = imgArr.length;
+	var nextImageIndex = (currentImageIndex + 1) % totalImages; // This ensures the index loops back to 0
+
+	// reference the new image URL from the JS array
+	var newImgSrc = imgArr[nextImageIndex]; // This should be the URL of the next image
+
+	// Update the display of the current image index and count
+	document.getElementById('current-image-index').textContent = nextImageIndex;
+	document.getElementById('image-count').textContent = 'Image ' + (nextImageIndex + 1) + ' of ' + totalImages;
+	document.getElementById('activeimg').src = newImgSrc;
+
+	// Optionally update the onload event for the new image
+	document.getElementById('activeimg').onload = function() {
+		initImageTool('activeimg-' + nextImageIndex);
+	};
+
+	return false;
+}
