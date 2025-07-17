@@ -11,7 +11,7 @@ all: up
 
 # Create network if needed, then start containers
 up: network
-	$(COMPOSE) -f $(COMPOSE_FILE) up -d
+	$(COMPOSE) -f $(COMPOSE_FILE) up -d --build
 
 down:
 	$(COMPOSE) -f $(COMPOSE_FILE) down
@@ -33,7 +33,7 @@ status:
 
 # Create network if it doesn't already exist
 network:
-	@if ! docker network exists $(NETWORK); then \
+	@if ! docker network inspect $(NETWORK) >/dev/null 2>&1; then \
 		echo "🔧 Creating network: $(NETWORK)"; \
 		docker network create $(NETWORK); \
 	else \
