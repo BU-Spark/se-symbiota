@@ -1,10 +1,10 @@
 INSERT INTO `schemaversion` (versionnumber) values ("3.1");
 
-ALTER TABLE `ctcontrolvocab` 
+ALTER TABLE `ctcontrolvocab`
   ADD COLUMN `filterVariable` VARCHAR(150) NOT NULL DEFAULT '' AFTER `fieldName`,
   DROP INDEX `UQ_ctControlVocab`;
 
-ALTER TABLE `ctcontrolvocab` 
+ALTER TABLE `ctcontrolvocab`
   ADD UNIQUE INDEX `UQ_ctControlVocab` (`title` ASC, `tableName` ASC, `fieldName` ASC, `filterVariable` ASC);
 
 INSERT INTO `ctcontrolvocab`(title, tableName, fieldName, filterVariable)
@@ -16,38 +16,38 @@ INSERT INTO `ctcontrolvocabterm`(cvID, term, termDisplay)
 INSERT INTO `ctcontrolvocabterm`(cvID, term, termDisplay)
   SELECT cvID, "genericResource", "Generic Resource" FROM ctcontrolvocab WHERE tableName = "omoccurassociations" AND fieldName = "relationship" AND filterVariable = "associationType:resource";
 
-  
-ALTER TABLE `fmchklsttaxalink` 
+
+ALTER TABLE `fmchklsttaxalink`
   DROP FOREIGN KEY `FK_chklsttaxalink_cid`;
 
-ALTER TABLE `fmchklsttaxalink` 
+ALTER TABLE `fmchklsttaxalink`
   ADD CONSTRAINT `FK_chklsttaxalink_cid`  FOREIGN KEY (`clid`)  REFERENCES `fmchecklists` (`clid`)  ON DELETE CASCADE  ON UPDATE CASCADE;
 
 
 #Set foreign keys for fmchklstcoordinates
-ALTER TABLE `fmchklstcoordinates` 
+ALTER TABLE `fmchklstcoordinates`
   DROP INDEX `FKchklsttaxalink` ;
 
-ALTER TABLE `fmchklstcoordinates` 
+ALTER TABLE `fmchklstcoordinates`
   ADD INDEX `IX_checklistCoord_tid` (`tid` ASC),
   ADD INDEX `IX_checklistCoord_clid` (`clid` ASC);
 
-ALTER TABLE `fmchklstcoordinates` 
+ALTER TABLE `fmchklstcoordinates`
   ADD UNIQUE INDEX `UQ_checklistCoord_unique` (`clid` ASC, `tid` ASC, `decimalLatitude` ASC, `decimalLongitude` ASC);
 
-ALTER TABLE `fmchklstcoordinates` 
+ALTER TABLE `fmchklstcoordinates`
   ADD CONSTRAINT `FK_checklistCoord_clid`  FOREIGN KEY (`clid`)  REFERENCES `fmchecklists` (`clid`)  ON DELETE CASCADE  ON UPDATE CASCADE,
   ADD CONSTRAINT `FK_checklistCoord_tid`  FOREIGN KEY (`tid`)  REFERENCES `taxa` (`tid`)  ON DELETE CASCADE  ON UPDATE CASCADE;
 
 
 -- Ensure these older tables are innoDB
-ALTER TABLE `geographicpolygon` 
+ALTER TABLE `geographicpolygon`
   ENGINE = InnoDB;
 
-ALTER TABLE `geographicthesaurus` 
+ALTER TABLE `geographicthesaurus`
   ENGINE = InnoDB;
 
-ALTER TABLE `geographicpolygon` 
+ALTER TABLE `geographicpolygon`
   MODIFY COLUMN footprintPolygon geometry NOT NULL;
 
 DROP PROCEDURE IF EXISTS `insertGeographicPolygon`;
@@ -62,29 +62,29 @@ CREATE PROCEDURE `insertGeographicPolygon`(IN geo_id int, IN geo_json longtext)
 CREATE PROCEDURE `updateGeographicPolygon`(IN geo_id int, IN geo_json longtext)
   BEGIN
     UPDATE geographicpolygon SET geoJSON = geo_json, footprintPolygon = ST_GeomFromGeoJSON(geo_json) WHERE geoThesID = geo_id;
-  END | 
+  END |
 DELIMITER ;
 
 
-ALTER TABLE `images` 
+ALTER TABLE `images`
   ADD COLUMN `pixelYDimension` INT NULL AFTER `mediaMD5`,
   ADD COLUMN `pixelXDimension` INT NULL AFTER `pixelYDimension`,
-  CHANGE COLUMN `InitialTimeStamp` `initialTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ;  
+  CHANGE COLUMN `InitialTimeStamp` `initialTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ;
 
 
-ALTER TABLE `ommaterialsample` 
+ALTER TABLE `ommaterialsample`
   ADD INDEX `IX_ommatsample_sampleType` (`sampleType` ASC);
 
 
-ALTER TABLE `omoccurassociations` 
+ALTER TABLE `omoccurassociations`
   ADD COLUMN `associationType` VARCHAR(45) NOT NULL AFTER `occid`;
 
-ALTER TABLE `omoccurassociations` 
+ALTER TABLE `omoccurassociations`
   ADD COLUMN `objectID` VARCHAR(250) NULL DEFAULT NULL COMMENT 'dwc:relatedResourceID (object identifier)' AFTER `subType`,
   ADD COLUMN `instanceID` VARCHAR(45) NULL DEFAULT NULL COMMENT 'dwc:resourceRelationshipID, if association was defined externally ' AFTER `accordingTo`,
   CHANGE COLUMN `identifier` `identifier` VARCHAR(250) NULL DEFAULT NULL COMMENT 'Deprecated field' ,
   CHANGE COLUMN `sourceIdentifier` `sourceIdentifier` VARCHAR(45) NULL DEFAULT NULL COMMENT 'deprecated field' ;
-  
+
 UPDATE `omoccurassociations`
   SET objectID = identifier
   WHERE objectID IS NULL AND identifier IS NOT NULL;
@@ -93,30 +93,30 @@ UPDATE `omoccurassociations`
   SET instanceID = sourceIdentifier
   WHERE instanceID IS NULL AND sourceIdentifier IS NOT NULL;
 
-ALTER TABLE `omoccurassociations` 
+ALTER TABLE `omoccurassociations`
   DROP INDEX `UQ_omoccurassoc_sciname`;
-  
-ALTER TABLE `omoccurassociations` 
+
+ALTER TABLE `omoccurassociations`
   ADD UNIQUE INDEX `UQ_omoccurassoc_sciname` (`occid` ASC, `verbatimSciname` ASC, `associationType` ASC);
 
-ALTER TABLE `omoccurassociations` 
+ALTER TABLE `omoccurassociations`
   ADD INDEX `IX_occurassoc_identifier` (`identifier` ASC),
   ADD INDEX `IX_occurassoc_recordID` (`recordID` ASC);
-  
 
-ALTER TABLE `omoccurassociations` 
+
+ALTER TABLE `omoccurassociations`
   DROP INDEX `omossococcur_occid_idx`,
   ADD INDEX `IX_ossococcur_occid` (`occid` ASC);
 
-ALTER TABLE `omoccurassociations` 
+ALTER TABLE `omoccurassociations`
   DROP INDEX `omossococcur_occidassoc_idx`,
   ADD INDEX `IX_ossococcur_occidassoc` (`occidAssociate` ASC);
 
-ALTER TABLE `omoccurassociations` 
+ALTER TABLE `omoccurassociations`
   DROP INDEX `INDEX_verbatimSciname`,
   ADD INDEX `IX_occurassoc_verbatimSciname` (`verbatimSciname` ASC);
 
-ALTER TABLE `omoccurassociations` 
+ALTER TABLE `omoccurassociations`
   ADD UNIQUE INDEX `UQ_omoccurassoc_identifier` (`occid` ASC, `identifier` ASC);
 
 UPDATE `omoccurassociations`
@@ -132,8 +132,8 @@ UPDATE `omoccurassociations`
   WHERE associationType = "" AND occidAssociate IS NULL AND resourceUrl IS NULL AND verbatimSciname IS NOT NULL;
 
 
-# Skip if 1.0 install: Corrects an issue with db_schema-3.0.sql. Will fail when udating 1.x schemas, thus ignore 
-ALTER TABLE `omoccurdeterminations` 
+# Skip if 1.0 install: Corrects an issue with db_schema-3.0.sql. Will fail when udating 1.x schemas, thus ignore
+ALTER TABLE `omoccurdeterminations`
   CHANGE COLUMN `identificationID` `sourceIdentifier` VARCHAR(45) NULL DEFAULT NULL ;
 
 
@@ -143,13 +143,22 @@ UPDATE `omoccurrences` o INNER JOIN omcollections c ON o.collid = c.collid
   WHERE (o.basisofrecord = "HumanObservation" OR o.basisofrecord IS NULL) AND c.colltype = 'Preserved Specimens'
   AND o.occid NOT IN(SELECT occid FROM omoccuredits WHERE fieldname = "basisofrecord");
 
-ALTER TABLE `omoccurrences` 
+ALTER TABLE `omoccurrences`
   ADD COLUMN `vitality` VARCHAR(150) NULL DEFAULT NULL AFTER `behavior`;
 
-#Standardize naming of indexes within occurrence table 
+#Standardize naming of indexes within occurrence table
 SET FOREIGN_KEY_CHECKS=0;
 
-ALTER TABLE `omoccurrences` 
+ALTER TABLE `omoccurrences`
+  DROP FOREIGN KEY `FK_omoccurrences_collid`;
+
+ALTER TABLE `omoccurrences`
+  DROP FOREIGN KEY `FK_omoccurrences_tid`;
+
+ALTER TABLE `omoccurrences`
+  DROP FOREIGN KEY `FK_omoccurrences_uid`;
+
+ALTER TABLE `omoccurrences`
   DROP INDEX `Index_collid`,
   DROP INDEX `UNIQUE_occurrenceID`,
   DROP INDEX `Index_sciname`,
@@ -181,7 +190,7 @@ ALTER TABLE `omoccurrences`
   DROP INDEX `IX_omoccur_eventDate2`,
   DROP INDEX `IX_omoccurrences_recordID`;
 
-ALTER TABLE `omoccurrences` 
+ALTER TABLE `omoccurrences`
   ADD UNIQUE INDEX `UQ_occurrences_collid_dbpk` (`collid` ASC, `dbpk` ASC),
   ADD UNIQUE INDEX `UQ_occurrences_occurrenceID` (`occurrenceID` ASC),
   ADD INDEX `IX_occurrences_collid` (`collid` ASC),
@@ -214,7 +223,16 @@ ALTER TABLE `omoccurrences`
   ADD INDEX `IX_occurrences_dateEntered` (`dateEntered` ASC),
   ADD INDEX `IX_occurrences_dateLastModified` (`dateLastModified` ASC);
 
-SET FOREIGN_KEY_CHECKS=1; 
+ALTER TABLE `omoccurrences`
+  ADD CONSTRAINT `FK_omoccurrences_collid` FOREIGN KEY (`collid`) REFERENCES `omcollections` (`collID`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `omoccurrences`
+  ADD CONSTRAINT `FK_omoccurrences_tid` FOREIGN KEY (`tidInterpreted`) REFERENCES `taxa` (`tid`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE `omoccurrences`
+  ADD CONSTRAINT `FK_omoccurrences_uid` FOREIGN KEY (`observerUid`) REFERENCES `users` (`uid`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+SET FOREIGN_KEY_CHECKS=1;
 
 
 # Clean up localitySecurity for occurrences that are cultivated and have not explicitly had their localitySecurity edited to be 1 (and are missing a security reason) more recently than it has been edited to 0.
@@ -226,12 +244,12 @@ UPDATE omoccurrences o INNER JOIN omoccuredits e ON o.occid = e.occid
 UPDATE omoccurrences SET localitySecurity=0 WHERE cultivationStatus=1 AND localitySecurity=1 AND localitySecurityReason IS NULL;
 
 
-ALTER TABLE `taxa` 
+ALTER TABLE `taxa`
   ADD COLUMN `rankName` VARCHAR(45) NULL AFTER `rankID`,
   CHANGE COLUMN `modifiedTimeStamp` `modifiedTimestamp` DATETIME NULL DEFAULT NULL ,
   CHANGE COLUMN `InitialTimeStamp` `initialTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ;
 
-ALTER TABLE `taxa` 
+ALTER TABLE `taxa`
   ADD INDEX `IX_taxa_unitname1` (`unitName1` ASC),
   ADD INDEX `IX_taxa_unitname2` (`unitName2` ASC),
   ADD INDEX `IX_taxa_unitname3` (`unitName3` ASC),
@@ -246,24 +264,24 @@ ALTER TABLE `taxa`
   DROP INDEX `rankid_index` ;
 
 
-ALTER TABLE `uploadspectemp` 
+ALTER TABLE `uploadspectemp`
   ADD COLUMN `vitality` VARCHAR(150) NULL DEFAULT NULL AFTER `behavior`;
 
-ALTER TABLE `uploadspectemp` 
+ALTER TABLE `uploadspectemp`
   DROP INDEX `Index_uploadspectemp_occid`,
   DROP INDEX `Index_uploadspectemp_dbpk`,
   DROP INDEX `Index_uploadspec_sciname`,
   DROP INDEX `Index_uploadspec_catalognumber`,
   DROP INDEX `Index_uploadspec_othercatalognumbers`;
-  
-ALTER TABLE `uploadspectemp` 
+
+ALTER TABLE `uploadspectemp`
   ADD INDEX `IX_uploadspectemp_occid` (`occid` ASC),
   ADD INDEX `IX_uploadspectemp_dbpk` (`dbpk` ASC),
   ADD INDEX `IX_uploadspec_sciname` (`sciname` ASC),
   ADD INDEX `IX_uploadspec_catalognumber` (`catalogNumber` ASC),
   ADD INDEX `IX_uploadspec_othercatalognumbers` (`otherCatalogNumbers` ASC);
-  
-ALTER TABLE `uploadspectemp` 
+
+ALTER TABLE `uploadspectemp`
   ADD INDEX `IX_uploadspectemp_occurrenceID` (`occurrenceID` ASC);
 
 
@@ -278,8 +296,7 @@ CREATE TABLE `usersthirdpartyauth` (
 ) ENGINE=InnoDB;
 
 
-# Skip if 3.0 install: Table does not exist within db_schema-3.0, thus statement is expected to fail if this was not originally a 1.0 install
-# Deprecate omoccurresource table in preference for omoccurassociations. 
-ALTER TABLE `omoccurresource` 
-  RENAME TO  `deprecated_omoccurresource` ;
-
+-- # Skip if 3.0 install: Table does not exist within db_schema-3.0, thus statement is expected to fail if this was not originally a 1.0 install
+-- # Deprecate omoccurresource table in preference for omoccurassociations.
+-- ALTER TABLE `omoccurresource`
+--   RENAME TO  `deprecated_omoccurresource` ;
