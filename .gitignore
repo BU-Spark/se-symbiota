@@ -15,3 +15,5 @@ includes/citationgbif.php
 includes/citationcollection.php
 includes/citationdataset.php
 includes/citationportal.php
+.DS_Store
+**/.DS_Store
