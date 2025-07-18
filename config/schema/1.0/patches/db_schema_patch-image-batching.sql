@@ -14,17 +14,17 @@ CREATE TABLE `batch` (
   PRIMARY KEY (`batchID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- Create cross-reference table between the batch table and media table
+-- Create cross-reference table between the batch table and images table
 DROP TABLE IF EXISTS `batch_XREF`;
 CREATE TABLE `batch_XREF` (
-  `mediaID` int(10) unsigned NOT NULL,
+  `imgid` int(10) unsigned NOT NULL,
   `batchID` int(11) NOT NULL,
   `ordinal` INT(10) NOT NULL,
   `initialtimestamp` TIMESTAMP NULL DEFAULT current_timestamp,
-  PRIMARY KEY (`mediaID`,`batchID`),
-  KEY `FK_batch_XREF_media` (`mediaID`),
+  PRIMARY KEY (`imgid`,`batchID`),
+  KEY `FK_batch_XREF_img` (`imgid`),
   KEY `FK_batch_XREF_batch` (`batchID`),
-  CONSTRAINT `FK_batch_XREF_media` FOREIGN KEY (`mediaID`) REFERENCES `media` (`mediaID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_batch_XREF_img` FOREIGN KEY (`imgid`) REFERENCES `images` (`imgid`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FK_batch_XREF_batch` FOREIGN KEY (`batchID`) REFERENCES `batch` (`batchID`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -45,12 +45,12 @@ CREATE TABLE `batch_user` (
 
 DROP TABLE IF EXISTS `images_barcode`;
 CREATE TABLE `images_barcode` (
-  `mediaID` int(10) unsigned NOT NULL,
+  `imgid` int(10) unsigned NOT NULL,
   `barcode` varchar(255) NOT NULL,
   `occid` int unsigned NOT NULL,
   PRIMARY KEY (`barcode`),
-  KEY `FK_images_barcode_media` (`mediaID`),
+  KEY `FK_images_barcode_images` (`imgid`),
   KEY `FK_images_barcode_omoccurrences` (`occid`),
-  CONSTRAINT `FK_images_barcode_media` FOREIGN KEY (`mediaID`) REFERENCES `media` (`mediaID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_images_barcode_images` FOREIGN KEY (`imgid`) REFERENCES `images` (`imgid`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `FK_images_barcode_omoccurrences` FOREIGN KEY (`occid`) REFERENCES `omoccurrences` (`occid`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
