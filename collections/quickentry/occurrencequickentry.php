@@ -806,7 +806,7 @@ else{
 									<span class="field-label"><?php echo (isset($LANG['IDENTIFICATION_QUALIFIER']) ? $LANG['IDENTIFICATION_QUALIFIER'] : 'ID Qualifier'); ?></span>
 									<span class="field-elem">
 										<select name="idQualifier" onchange="fieldChanged('idQualifier');">
-											<option value=""><?php echo (isset($LANG['IDENTIFICATION_QUALIFIER']) ? $LANG['IDENTIFICATION_QUALIFIER'] : 'ID Qualifier'); ?>Select Your ID Qualifier</option>
+											<option value="">Select Your ID Qualifier</option>
 											<option value="">---------------------------------------</option>
 											<?php
 											$idqArr = array('s. str.', '?', 'not', 'cf.', 's. lat.', 'aff.');
