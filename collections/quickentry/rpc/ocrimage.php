@@ -2,7 +2,7 @@
 include_once('../../../config/symbini.php');
 include_once($SERVER_ROOT.'/classes/SpecProcessorOcr.php');
 
-$imgid = filter_var($_REQUEST['imgid'], FILTER_SANITIZE_NUMBER_INT);
+$imgid = filter_var($_REQUEST['imgid'], FILTER_SANITIZE_NUMBER_INT); 
 $x = array_key_exists('x', $_REQUEST) ? $_REQUEST['x'] : 0;
 $y = array_key_exists('y', $_REQUEST) ? $_REQUEST['y'] : 0;
 $w = array_key_exists('w', $_REQUEST) ? $_REQUEST['w'] : 1;
