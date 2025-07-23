@@ -969,7 +969,7 @@ class OccurrenceEditorManager {
 						$rs2->free();
 					}
 					//If additional identifiers exist, NULL otherCatalogNumbers
-					if ($postArr['idvalue'][0]) $postArr['othercatalognumbers'] = '';
+					if (isset($postArr['idvalue']) && !empty($postArr['idvalue'][0])) $postArr['othercatalognumbers'] = '';
 
 					//If processing status was "unprocessed" and recordEnteredBy is null, populate with user login
 					$oldProcessingStatus = isset($oldValueArr['omoccurrences']['processingstatus']) ? $oldValueArr['omoccurrences']['processingstatus'] : '';
@@ -983,9 +983,11 @@ class OccurrenceEditorManager {
 						'VALUES (' . $this->occid . ',1,' . ($autoCommit ? '1' : '0') . ',' . $GLOBALS['SYMB_UID'] . ',';
 					foreach ($editFieldArr as $tableName => $fieldArr) {
 						if ($tableName == 'omoccuridentifiers') {
-							if ($fieldArr) {
+							if ($fieldArr && isset($postArr['idkey']) && isset($postArr['idname']) && isset($postArr['idvalue'])) {
 								foreach ($postArr['idkey'] as $idIndex => $idKey) {
-									$newValue = $postArr['idname'][$idIndex] . ($postArr['idname'][$idIndex] ? ': ' : '') . $postArr['idvalue'][$idIndex];
+									$idName = isset($postArr['idname'][$idIndex]) ? $postArr['idname'][$idIndex] : '';
+									$idValue = isset($postArr['idvalue'][$idIndex]) ? $postArr['idvalue'][$idIndex] : '';
+									$newValue = $idName . ($idName ? ': ' : '') . $idValue;
 									$oldValue = '';
 									if (is_numeric($idKey)) $oldValue = $oldValueArr['omoccuridentifiers'][$idKey];
 									if ($oldValue != $newValue) {
