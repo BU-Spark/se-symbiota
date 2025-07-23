@@ -1064,7 +1064,8 @@ class OccurrenceEditorManager {
 					//Update occurrence record
 					$sql = 'UPDATE IGNORE omoccurrences SET ' . substr($sql, 1) . ' WHERE (occid = ' . $this->occid . ')';
 					if ($this->conn->query($sql)) {
-						if (strtolower($postArr['processingstatus']) != 'unprocessed') {
+						$processingStatus = isset($postArr['processingstatus']) ? strtolower($postArr['processingstatus']) : '';
+						if ($processingStatus != 'unprocessed') {
 							//UPDATE uid within omcrowdsourcequeue, only if not yet processed
 							$isVolunteer = true;
 							if (array_key_exists('CollAdmin', $USER_RIGHTS) && in_array($this->collId, $USER_RIGHTS['CollAdmin'])) $isVolunteer = false;
