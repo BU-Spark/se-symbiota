@@ -32,6 +32,22 @@ if($crowdSourceMode){
 	$occManager->setCrowdSourceMode(1);
 }
 
+$imgIDs = array();
+$firstImgId = null;
+$firstBarcode = null;
+$firstIndex = 0;
+$lastImgId = null;
+$lastBarcode = null;
+$lastIndex = -1;
+$imgNum = 0;
+$currentImgId = isset($_REQUEST['imgid']) ? $_REQUEST['imgid'] : null;
+$currentImgIndex = isset($_REQUEST['imgindex']) ? $_REQUEST['imgindex'] : 0;
+$occData = array();
+$ocrResults = null;
+$firstOccId = null;
+$lastOccId = null;
+$barcode = null;
+
 if (isset($_REQUEST['batchid'])) {
    $batchId = $_REQUEST['batchid'];
    // Use $batchId as needed
@@ -73,6 +89,28 @@ if (isset($_REQUEST['batchid'])) {
    $lastOccId = null;
    $barcode = null;
  }
+} else {
+   // Handle case when batchid is not set - get all images
+   $imgIDs = $occManager->getImgIDs();
+   if (!empty($imgIDs)) {
+     $firstImgId = $imgIDs[0];
+     $firstBarcode = $occManager->getBarcode($firstImgId);
+     $firstIndex = 0;
+     $lastImgId = end($imgIDs);
+     $lastBarcode = $occManager->getBarcode($lastImgId);
+     $lastIndex = count($imgIDs) - 1;
+     $imgNum = count($imgIDs);
+     $currentImgId = $_REQUEST['imgid'];
+     $currentImgIndex = $_REQUEST['imgindex'];
+     $ocrResults = $occManager->getOCRResult($lastImgId);
+     // occData is a hashtable, which has imgid as key, and occid as value
+     foreach ($imgIDs as $imgID) {
+       $occData[$imgID] = $occManager->getOneOccID($imgID);
+     }
+     $firstOccId = $occData[$firstImgId];
+     $lastOccId = $occData[$lastImgId];
+     $barcode = $occManager->getBarcode($currentImgId);
+   }
 }
 
 //Sanitation
@@ -813,10 +851,10 @@ else{
 							</div>
 							<?php if(!isset($_POST['toggle-button']) || (isset($_POST['toggle-button']) && $_POST['toggle-button'] != 'Minimal')): ?>
 								<div class="field-block">
-									<span class="field-label"><?php echo (isset($LANG['IDQUALIFIER']) ? $LANG['IDQUALIFIER'] : 'ID Qualifier'); ?></span>
+									<span class="field-label"><?php echo (isset($LANG['IDENTIFICATION_QUALIFIER']) ? $LANG['IDENTIFICATION_QUALIFIER'] : 'ID Qualifier'); ?></span>
 									<span class="field-elem">
 										<select name="idQualifier" onchange="fieldChanged('idQualifier');">
-											<option value=""><?php echo $LANG['IDQUALIFIER']; ?>Select Your ID Qualifier</option>
+											<option value="">Select Your ID Qualifier</option>
 											<option value="">---------------------------------------</option>
 											<?php
 											$idqArr = array('s. str.', '?', 'not', 'cf.', 's. lat.', 'aff.');

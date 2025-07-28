@@ -2800,7 +2800,7 @@ class OccurrenceEditorManager {
 	}
 	
 	public function getBarcode($imgID) {
-		$query = "SELECT barcode FROM images_barcode WHERE imgid = '$imgID' LIMIT 1";
+		$query = "SELECT barcode FROM images_barcode WHERE mediaId = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 		if ($result && $row = $result->fetch_assoc()) {
 			$barcode = $row['barcode'];
@@ -2814,7 +2814,7 @@ class OccurrenceEditorManager {
 
 	public function getOneOccID($imgId) {
 		$occid = false;
-		$query = "SELECT occid FROM images WHERE imgid = '$imgId' LIMIT 1";
+		$query = "SELECT occid FROM media WHERE mediaId = '$imgId' LIMIT 1";
 		$result = $this->conn->query($query);
 
 		if ($result && $row = $result->fetch_assoc()) {
