@@ -282,3 +282,29 @@ function nextRawText(imgCnt,fragCnt){
 	ocrFragIndex = fragCnt;
 	return false;
 }
+
+function draggableImgPanel(){
+	$( "#labelProcFieldset" ).draggable();
+	$( "#labelProcFieldset" ).draggable({ cancel: "#labelprocessingdiv" });
+	$( "#labelHeaderDiv" ).css('cursor', 'move');
+	$( "#labelProcFieldset" ).css('top', '10px');
+	$( "#labelProcFieldset" ).css('left', '5px');
+	$( "#floatImgDiv" ).hide();
+	$( "#draggableImgDiv" ).hide();
+	$( "#anchorImgDiv" ).show();
+}
+
+function anchorImgPanel(){
+	$( "#draggableImgDiv" ).show();
+	$( "#floatImgDiv" ).show();
+	$( "#anchorImgDiv" ).hide();
+	$( "#labelProcFieldset" ).css('position', 'static');
+	$( "#labelProcFieldset" ).css('top', '');
+	$( "#labelProcFieldset" ).css('left', '');
+	try {
+		$( "#labelProcFieldset" ).draggable( "destroy" );
+		$( "#labelHeaderDiv" ).css('cursor', 'default');
+	}
+	catch(err) {
+	}
+}
