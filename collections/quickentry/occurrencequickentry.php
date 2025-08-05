@@ -559,10 +559,12 @@ if($SYMB_UID){
 	$imgidCollection = [];
 	$imgUrlCollection = [];
 	foreach ($imgArr as $item) {
-		$imgidCollection[] = $item['imgid'];
+		$imgidCollection[] = $item['mediaId'];
 		$imgUrlCollection[] = $item['web'];
 	}
 	$totalImage = count($imgidCollection);
+
+	$imgId = isset($imgidCollection[$currentImgIndex]) ? $imgidCollection[$currentImgIndex] : (isset($imgIDs[$currentImgIndex]) ? $imgIDs[$currentImgIndex] : null);
 }
 else{
 	header('Location: ../../profile/index.php?refurl=../collections/editor/occurrenceeditor.php?'.htmlspecialchars($_SERVER['QUERY_STRING'], ENT_QUOTES));
