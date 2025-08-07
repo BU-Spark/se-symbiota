@@ -20,7 +20,7 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 
 	public function getImgIndex($imgID) {
 		$imgIndex = false;
-		$query = "SELECT ordinal FROM batch_XREF WHERE imgid = '$imgID' LIMIT 1";
+		$query = "SELECT ordinal FROM batch_XREF WHERE mediaID = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 
 		if ($result && $row = $result->fetch_assoc()) {
@@ -68,10 +68,10 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 
 	public function getImgIDs($batchID) {
 		$imgIDs = array();
-		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
+		$query = "SELECT mediaID FROM batch_XREF WHERE batchID = '$batchID'";
 		$result = $this->conn->query($query);
 		while ($row = $result->fetch_assoc()) {
-			$imgIDs[] = $row['imgid'];
+			$imgIDs[] = $row['mediaID'];
 		}
 		$result->free();
 		return $imgIDs;
@@ -79,7 +79,7 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 
 	public function getOneOccID($imgID) {
 		$occid = false;
-		$query = "SELECT occid FROM images WHERE imgid = '$imgID' LIMIT 1";
+		$query = "SELECT occid FROM media WHERE mediaID = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 
 		if ($result && $row = $result->fetch_assoc()) {
