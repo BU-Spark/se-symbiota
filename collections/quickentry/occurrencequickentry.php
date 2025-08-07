@@ -32,25 +32,86 @@ if($crowdSourceMode){
 	$occManager->setCrowdSourceMode(1);
 }
 
-// get all image ids from the images table
-$imgIDs = $occManager->getImgIDs();
-$firstImgId = $imgIDs[0];
-$firstBarcode = $occManager->getBarcode($firstImgId);
+$imgIDs = array();
+$firstImgId = null;
+$firstBarcode = null;
 $firstIndex = 0;
-$lastImgId = end($imgIDs);
-$lastBarcode = $occManager->getBarcode($lastImgId);
-$lastIndex = count($imgIDs) - 1;
-$imgNum = count($imgIDs);
-$currentImgId = $_REQUEST['imgid'];
-$currentImgIndex = $_REQUEST['imgindex'];
+$lastImgId = null;
+$lastBarcode = null;
+$lastIndex = -1;
+$imgNum = 0;
+$currentImgId = isset($_REQUEST['imgid']) ? $_REQUEST['imgid'] : null;
+$currentImgIndex = isset($_REQUEST['imgindex']) ? $_REQUEST['imgindex'] : 0;
 $occData = array();
-// occData is a hashtable, which has imgid as key, and occid as value
-foreach ($imgIDs as $imgID) {
-	$occData[$imgID] = $occManager->getOneOccID($imgID);
+$ocrResults = null;
+$firstOccId = null;
+$lastOccId = null;
+$barcode = null;
+
+if (isset($_REQUEST['batchid'])) {
+   $batchId = $_REQUEST['batchid'];
+   // Use $batchId as needed
+ $imgIDs = $occManager->getImgIDs($batchId);
+  // Check if imgIDs array is not empty before accessing elements
+ if (!empty($imgIDs)) {
+   $firstImgId = $imgIDs[0];
+   $firstBarcode = $occManager->getBarcode($firstImgId);
+   $firstIndex = 0;
+   $lastImgId = end($imgIDs);
+   $lastBarcode = $occManager->getBarcode($lastImgId);
+   $lastIndex = count($imgIDs) - 1;
+   $imgNum = count($imgIDs);
+   $currentImgId = $_REQUEST['imgid'];
+   $currentImgIndex = $_REQUEST['imgindex'];
+   $occData = array();
+   $ocrResults =  $occManager->getOCRResult($lastImgId);
+   // occData is a hashtable, which has imgid as key, and occid as value
+   foreach ($imgIDs as $imgID) {
+     $occData[$imgID] = $occManager->getOneOccID($imgID);
+   }
+   $firstOccId = $occData[$firstImgId];
+   $lastOccId = $occData[$lastImgId];
+   $barcode = $occManager->getBarcode($currentImgId);
+ } else {
+   // Handle case when no images are found
+   $firstImgId = null;
+   $firstBarcode = null;
+   $firstIndex = 0;
+   $lastImgId = null;
+   $lastBarcode = null;
+   $lastIndex = -1;
+   $imgNum = 0;
+   $currentImgId = isset($_REQUEST['imgid']) ? $_REQUEST['imgid'] : null;
+   $currentImgIndex = isset($_REQUEST['imgindex']) ? $_REQUEST['imgindex'] : 0;
+   $occData = array();
+   $ocrResults = null;
+   $firstOccId = null;
+   $lastOccId = null;
+   $barcode = null;
+ }
+} else {
+   // Handle case when batchid is not set - get all images
+   $imgIDs = $occManager->getImgIDs();
+   if (!empty($imgIDs)) {
+     $firstImgId = $imgIDs[0];
+     $firstBarcode = $occManager->getBarcode($firstImgId);
+     $firstIndex = 0;
+     $lastImgId = end($imgIDs);
+     $lastBarcode = $occManager->getBarcode($lastImgId);
+     $lastIndex = count($imgIDs) - 1;
+     $imgNum = count($imgIDs);
+     $currentImgId = $_REQUEST['imgid'];
+     $currentImgIndex = $_REQUEST['imgindex'];
+     $ocrResults = $occManager->getOCRResult($lastImgId);
+     // occData is a hashtable, which has imgid as key, and occid as value
+     foreach ($imgIDs as $imgID) {
+       $occData[$imgID] = $occManager->getOneOccID($imgID);
+     }
+     $firstOccId = $occData[$firstImgId];
+     $lastOccId = $occData[$lastImgId];
+     $barcode = $occManager->getBarcode($currentImgId);
+   }
 }
-$firstOccId = $occData[$firstImgId];
-$lastOccId = $occData[$lastImgId];
-$barcode = $occManager->getBarcode($currentImgId);
 
 //Sanitation
 if(!is_numeric($occId)) $occId = '';
@@ -59,7 +120,7 @@ if(!is_numeric($tabTarget)) $tabTarget = 0;
 if(!is_numeric($goToMode)) $goToMode = 0;
 if(!is_numeric($occIndex)) $occIndex = false;
 if(!is_numeric($crowdSourceMode)) $crowdSourceMode = 0;
-$action = filter_var($action,FILTER_SANITIZE_STRING);
+$action = htmlspecialchars(strip_tags($action), ENT_QUOTES, 'UTF-8');
 
 $displayQuery = 0;
 $isGenObs = 0;
@@ -166,7 +227,7 @@ if($SYMB_UID){
 			$isEditor = $occManager->isTaxonomicEditor();
 		}
 	}
-	include_once 'editProcessor.php';
+	include_once '../../collections/editor/editProcessor.php';
 	if($action == 'saveOccurEdits'){
 		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
 	} 
@@ -498,10 +559,12 @@ if($SYMB_UID){
 	$imgidCollection = [];
 	$imgUrlCollection = [];
 	foreach ($imgArr as $item) {
-		$imgidCollection[] = $item['imgid'];
+		$imgidCollection[] = $item['mediaId'];
 		$imgUrlCollection[] = $item['web'];
 	}
 	$totalImage = count($imgidCollection);
+
+	$imgId = isset($imgidCollection[$currentImgIndex]) ? $imgidCollection[$currentImgIndex] : (isset($imgIDs[$currentImgIndex]) ? $imgIDs[$currentImgIndex] : null);
 }
 else{
 	header('Location: ../../profile/index.php?refurl=../collections/editor/occurrenceeditor.php?'.htmlspecialchars($_SERVER['QUERY_STRING'], ENT_QUOTES));
@@ -635,11 +698,12 @@ else{
 			<?php
 			if($isEditor && ($occId || ($collId && $isEditor < 3))){
 				if(!$occArr && !$goToMode) $displayQuery = 1;
-				include 'includes/queryform.php';
+				include '../../collections/editor/includes/queryform.php';
 				?>
 				<h2>
 				<?php
-					echo("text");
+					// echo("text");
+					$institutionCode = isset($collMap['institutioncode']) ? $collMap['institutioncode'] : '';
 					echo($institutionCode);
 				?>
 				</h2>
@@ -789,10 +853,10 @@ else{
 							</div>
 							<?php if(!isset($_POST['toggle-button']) || (isset($_POST['toggle-button']) && $_POST['toggle-button'] != 'Minimal')): ?>
 								<div class="field-block">
-									<span class="field-label"><?php echo (isset($LANG['IDQUALIFIER']) ? $LANG['IDQUALIFIER'] : 'ID Qualifier'); ?></span>
+									<span class="field-label"><?php echo (isset($LANG['IDENTIFICATION_QUALIFIER']) ? $LANG['IDENTIFICATION_QUALIFIER'] : 'ID Qualifier'); ?></span>
 									<span class="field-elem">
 										<select name="idQualifier" onchange="fieldChanged('idQualifier');">
-											<option value=""><?php echo $LANG['IDQUALIFIER']; ?>Select Your ID Qualifier</option>
+											<option value="">Select Your ID Qualifier</option>
 											<option value="">---------------------------------------</option>
 											<?php
 											$idqArr = array('s. str.', '?', 'not', 'cf.', 's. lat.', 'aff.');

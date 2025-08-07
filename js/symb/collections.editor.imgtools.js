@@ -282,3 +282,56 @@ function nextRawText(imgCnt,fragCnt){
 	ocrFragIndex = fragCnt;
 	return false;
 }
+
+function draggableImgPanel(){
+	$( "#labelProcFieldset" ).draggable();
+	$( "#labelProcFieldset" ).draggable({ cancel: "#labelprocessingdiv" });
+	$( "#labelHeaderDiv" ).css('cursor', 'move');
+	$( "#labelProcFieldset" ).css('top', '10px');
+	$( "#labelProcFieldset" ).css('left', '5px');
+	$( "#floatImgDiv" ).hide();
+	$( "#draggableImgDiv" ).hide();
+	$( "#anchorImgDiv" ).show();
+}
+
+function anchorImgPanel(){
+	$( "#draggableImgDiv" ).show();
+	$( "#floatImgDiv" ).show();
+	$( "#anchorImgDiv" ).hide();
+	$( "#labelProcFieldset" ).css('position', 'static');
+	$( "#labelProcFieldset" ).css('top', '');
+	$( "#labelProcFieldset" ).css('left', '');
+	try {
+		$( "#labelProcFieldset" ).draggable( "destroy" );
+		$( "#labelHeaderDiv" ).css('cursor', 'default');
+	}
+	catch(err) {
+	}
+}
+
+$(function() {
+	$( "#zoomInfoDialog" ).dialog({
+		autoOpen: false,
+		position: { my: "left top", at: "right bottom", of: "#zoomInfoDiv" }
+	});
+
+	$( "#zoomInfoDiv" ).click(function() {
+		$( "#zoomInfoDialog" ).dialog( "open" );
+	});
+});
+
+// Temporary function to test image tools (pulled from all-features branch)
+function rotateImage(rotationAngle){
+	var imgObj = document.getElementById("activeimg-0");
+	var imgAngle = 0;
+	if(imgObj.style.transform){
+		var transformValue = imgObj.style.transform;
+		imgAngle = parseInt(transformValue.substring(7));
+	}
+	imgAngle = imgAngle + rotationAngle;
+	if(imgAngle < 0) imgAngle = 360 + imgAngle;
+	else if(imgAngle == 360) imgAngle = 0;
+	imgObj.style.transform = "rotate("+imgAngle+"deg)";
+	$(imgObj).imagetool("option","rotationAngle",imgAngle);
+	$(imgObj).imagetool("reset");
+}
