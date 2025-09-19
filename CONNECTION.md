@@ -38,3 +38,40 @@ This repository is where the actual OCR processing happens.
 ### Configurations:
 - Runs on port `8080`
 - Deployed as `ocr_service` service in Docker
+
+## Workflow
+```
+1. User Interface (se-symbiota)
+   ↓
+   JavaScript: collections.editor.imgtools.js
+   - User selects "external" OCR method
+   - Makes AJAX call to externalocr.php
+   ↓
+   
+2. Request Routing (se-symbiota → middleware)
+   collections/quickentry/rpc/externalocr.php
+   - Receives image URL from frontend
+   - POSTs to: http://ocr_middleware:8000/evaluate/azure?url=[imageUrl]
+   ↓
+   
+3. Middleware Processing (herbaria-ocr-middleware)
+   main.py → /evaluate/azure endpoint
+   - Validates request
+   - Forwards to: http://ocr_service:8080/azure?url=[imageUrl]
+   ↓
+   
+4. ML Processing (spark-symbiota-ml)
+   backend/main.py → /azure endpoint
+   - Downloads image from URL
+   - Validates image format
+   - Calls: transcription/doc_intelligence.py
+   - Processes through Azure Document Intelligence
+   - Returns structured OCR results
+   ↓
+   
+5. Response Chain
+   spark-symbiota-ml → herbaria-ocr-middleware → se-symbiota
+   - Results flow back through the same chain
+   - Final JSON response displayed in se-symbiota interface
+```
+
