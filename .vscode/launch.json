@@ -5,6 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
+            // The name that appears in the VS Code debug dropdown
+            "name": "Listen for Xdebug - PHP Symbiota",
+            // The debugger type — must be "php" when using the PHP Debug extension
+            "type": "php",
+            // "launch" means VS Code will listen for incoming Xdebug connections
+            "request": "launch",
+            // The port Xdebug will connect to (default for Xdebug 3 is 9003)
+            "port": 9003,
+            // Enables debug logging in the VS Code OUTPUT → PHP Debug panel
+            "log": true,
+            "pathMappings": {
+                /*
+                This maps the path inside your Docker container
+                to the matching path on your local machine.
+                LEFT side:  Path as seen inside the container (from docker-compose)
+                            /var/www/html/symbiota
+                RIGHT side: Absolute path on your host where the same code lives.
+                            Make sure this exactly matches your local folder path.
+                */
+                "/var/www/html/symbiota": "/Users/alanlin/Desktop/Symbiota/se-symbiota"
+            }
+        },
+        {
             "name": "Listen for Xdebug",
             "type": "php",
             "request": "launch",
