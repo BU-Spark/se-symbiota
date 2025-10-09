@@ -2483,26 +2483,26 @@ class OccurrenceEditorManager {
 	public function getImageInfo($imgId = 0){
 		$imageMap = Array();
 		if($this->occid){
-			$sql = 'SELECT imgid, url, sourceIdentifier, thumbnailurl, originalurl, caption, photographer, photographeruid, sourceurl, copyright, notes, occid, username, sortoccurrence, initialtimestamp FROM images ';
-			if($imgId) $sql .= 'WHERE (imgid = '.$imgId.') ';
+			$sql = 'SELECT mediaID, url, sourceIdentifier, thumbnailurl, originalurl, caption, creator, creatorUid, sourceUrl, copyright, notes, occid, username, sortoccurrence, initialtimestamp FROM media ';
+			if($imgId) $sql .= 'WHERE (mediaID = '.$imgId.') ';
 			else $sql .= 'WHERE (occid = '.$this->occid.') ';
 			$sql .= 'ORDER BY sortoccurrence';
 			//echo $sql;
 			// NOTE: imgid is used for our current database, but the latest Symbiota is uisng mediaID.  
 			$result = $this->conn->query($sql);
 			while($row = $result->fetch_object()){
-				$imageMap[$row->imgid]['url'] = $row->sourceIdentifier;
-				$imageMap[$row->imgid]['tnurl'] = $row->thumbnailurl;
-				$imageMap[$row->imgid]['origurl'] = $row->originalurl;
-				$imageMap[$row->imgid]['caption'] = $this->cleanOutStr($row->caption);
-				$imageMap[$row->imgid]['photographer'] = $this->cleanOutStr($row->photographer);
-				$imageMap[$row->imgid]['photographeruid'] = $row->photographeruid;
-				$imageMap[$row->imgid]['sourceurl'] = $row->sourceurl;
-				$imageMap[$row->imgid]['copyright'] = $this->cleanOutStr($row->copyright);
-				$imageMap[$row->imgid]['notes'] = $this->cleanOutStr($row->notes);
-				$imageMap[$row->imgid]['occid'] = $row->occid;
-				$imageMap[$row->imgid]['username'] = $this->cleanOutStr($row->username);
-				$imageMap[$row->imgid]['sort'] = $row->sortoccurrence;
+				$imageMap[$row->mediaID]['url'] = $row->sourceIdentifier;
+				$imageMap[$row->mediaID]['tnurl'] = $row->thumbnailurl;
+				$imageMap[$row->mediaID]['origurl'] = $row->originalurl;
+				$imageMap[$row->mediaID]['caption'] = $this->cleanOutStr($row->caption);
+				$imageMap[$row->mediaID]['creator'] = $this->cleanOutStr($row->creator);
+				$imageMap[$row->mediaID]['creatorUid'] = $row->creatorUid;
+				$imageMap[$row->mediaID]['sourceUrl'] = $row->sourceUrl;
+				$imageMap[$row->mediaID]['copyright'] = $this->cleanOutStr($row->copyright);
+				$imageMap[$row->mediaID]['notes'] = $this->cleanOutStr($row->notes);
+				$imageMap[$row->mediaID]['occid'] = $row->occid;
+				$imageMap[$row->mediaID]['username'] = $this->cleanOutStr($row->username);
+				$imageMap[$row->mediaID]['sort'] = $row->sortoccurrence;
 			}
 			$result->free();
 		}
@@ -2833,12 +2833,12 @@ class OccurrenceEditorManager {
 	}
 	
 	// For quick entry form
-	public function getImgIDs($batchID) {
+	public function getImgIDs() {
 		$imgIDs = array();
-		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
+		$query = "SELECT mediaId FROM media";
 		$result = $this->conn->query($query);
 		while ($row = $result->fetch_assoc()) {
-			$imgIDs[] = $row['imgid'];
+			$imgIDs[] = $row['mediaId'];
 		}
 		$result->free();
 		return $imgIDs;

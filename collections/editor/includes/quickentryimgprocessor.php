@@ -23,7 +23,6 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 			<div style="float:left;;padding-right:10px;margin:2px 20px 0px 0px;"><?php echo $LANG['ROTATE']; ?>: <a href="#" onclick="rotateImage(-90)">&nbsp;L&nbsp;</a> &lt;&gt; <a href="#" onclick="rotateImage(90)">&nbsp;R&nbsp;</a></div>
 		</div>
 		<div id="labelprocessingdiv" style="clear:both;">
-			<?php $currentImageId = 0; ?>
 			<div id="labeldiv-<?php echo $currentImageId; ?>">
 				<div>
 					<img id="activeimg-<?php echo $currentImageId; ?>" src="<?php echo($imgUrlCollection[$currentImageId]) ?>" style="height:400px;" onload="initImageTool('activeimg-<?php echo $currentImageId; ?>')" />
