@@ -8,6 +8,16 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Set working directory
 WORKDIR /home
 
+# Added for Xdebug
+# install the Xdebug extension and enable it
+RUN apt-get update \
+    && apt-get install -y autoconf build-essential \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
+# copy in your custom xdebug settings
+COPY xdebug.ini /usr/local/etc/php/conf.d/20-xdebug.ini
+
 # Install necessary packages
 # RUN apt-get update && apt-get install -y \
 #     bash \
