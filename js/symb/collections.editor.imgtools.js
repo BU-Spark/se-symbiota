@@ -113,19 +113,36 @@ function changeImgRes(resType){
 	}
 }
 
-function rotateImage(rotationAngle){
-	var imgObj = document.getElementById("activeimg-"+activeImgIndex);
+function rotateImage(rotationAngle, imgIndex){
+	if(typeof imgIndex === 'undefined') {
+		imgIndex = activeImgIndex;
+	}
+	
+	var imgObj = document.getElementById("activeimg-"+imgIndex);
+	if(!imgObj){
+		console.error("Image element not found: activeimg-" + imgIndex);
+		return;
+	}
+	
 	var imgAngle = 0;
 	if(imgObj.style.transform){
 		var transformValue = imgObj.style.transform;
-		imgAngle = parseInt(transformValue.substring(7));
+		var match = transformValue.match(/rotate\((-?\d+)deg\)/);
+		if(match){
+			imgAngle = parseInt(match[1]);
+		}
 	}
+	
 	imgAngle = imgAngle + rotationAngle;
 	if(imgAngle < 0) imgAngle = 360 + imgAngle;
-	else if(imgAngle == 360) imgAngle = 0;
+	else if(imgAngle >= 360) imgAngle = imgAngle % 360;
+	
 	imgObj.style.transform = "rotate("+imgAngle+"deg)";
-	$(imgObj).imagetool("option","rotationAngle",imgAngle);
-	$(imgObj).imagetool("reset");
+	
+	if(typeof $ !== 'undefined' && $(imgObj).data('imagetool')){
+		$(imgObj).imagetool("option","rotationAngle",imgAngle);
+		$(imgObj).imagetool("reset");
+	}
 }
 
 function ocrImage(ocrButton, target, imgidVar, imgCnt){
@@ -557,20 +574,6 @@ $(function() {
 		$( "#zoomInfoDialog" ).dialog( "open" );
 	});
 });
-function rotateImage(rotationAngle){
-	var imgObj = document.getElementById("activeimg-0");
-	var imgAngle = 0;
-	if(imgObj.style.transform){
-		var transformValue = imgObj.style.transform;
-		imgAngle = parseInt(transformValue.substring(7));
-	}
-	imgAngle = imgAngle + rotationAngle;
-	if(imgAngle < 0) imgAngle = 360 + imgAngle;
-	else if(imgAngle == 360) imgAngle = 0;
-	imgObj.style.transform = "rotate("+imgAngle+"deg)";
-	$(imgObj).imagetool("option","rotationAngle",imgAngle);
-	$(imgObj).imagetool("reset");
-}
 
 function floatImgPanel(){
 	$( "#labelProcFieldset" ).css('position', 'fixed');

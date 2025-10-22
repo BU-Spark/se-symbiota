@@ -2491,7 +2491,7 @@ class OccurrenceEditorManager {
 			// NOTE: imgid is used for our current database, but the latest Symbiota is uisng mediaID.  
 			$result = $this->conn->query($sql);
 			while($row = $result->fetch_object()){
-				$imageMap[$row->mediaID]['url'] = $row->sourceIdentifier;
+				$imageMap[$row->mediaID]['url'] = $row->url ? $row->url : $row->originalurl;
 				$imageMap[$row->mediaID]['tnurl'] = $row->thumbnailurl;
 				$imageMap[$row->mediaID]['origurl'] = $row->originalurl;
 				$imageMap[$row->mediaID]['caption'] = $this->cleanOutStr($row->caption);
@@ -2859,7 +2859,7 @@ class OccurrenceEditorManager {
 
 	// we use the notes column to store the OCR results temporarily. You should update this to the right column afterwards
 	public function getOCRResult($imgID) {
-		$query = "SELECT notes FROM images WHERE imgid = '$imgID' LIMIT 1";
+		$query = "SELECT notes FROM media WHERE mediaId = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 		if ($result && $row = $result->fetch_assoc()) {
 			$notes = $row['notes'];
