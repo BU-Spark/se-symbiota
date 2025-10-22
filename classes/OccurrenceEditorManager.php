@@ -967,9 +967,9 @@ class OccurrenceEditorManager {
 							if (!$postArr['family']) $postArr['family'] = $r2->family;
 						}
 						$rs2->free();
-					}
-					//If additional identifiers exist, NULL otherCatalogNumbers
-					if ($postArr['idvalue'][0]) $postArr['othercatalognumbers'] = '';
+				}
+				//If additional identifiers exist, NULL otherCatalogNumbers
+				if (!empty($postArr['idvalue'][0])) $postArr['othercatalognumbers'] = '';
 
 					//If processing status was "unprocessed" and recordEnteredBy is null, populate with user login
 					$oldProcessingStatus = isset($oldValueArr['omoccurrences']['processingstatus']) ? $oldValueArr['omoccurrences']['processingstatus'] : '';
@@ -1059,10 +1059,10 @@ class OccurrenceEditorManager {
 						} else $sqlHost = 'INSERT INTO omoccurassociations(occid,associationType,relationship,verbatimsciname) VALUES(' . $this->occid . ',"observational","host","' . $postArr['host'] . '")';
 						$this->conn->query($sqlHost);
 					}
-					//Update occurrence record
-					$sql = 'UPDATE IGNORE omoccurrences SET ' . substr($sql, 1) . ' WHERE (occid = ' . $this->occid . ')';
-					if ($this->conn->query($sql)) {
-						if (strtolower($postArr['processingstatus']) != 'unprocessed') {
+				//Update occurrence record
+				$sql = 'UPDATE IGNORE omoccurrences SET ' . substr($sql, 1) . ' WHERE (occid = ' . $this->occid . ')';
+				if ($this->conn->query($sql)) {
+					if (isset($postArr['processingstatus']) && strtolower($postArr['processingstatus']) != 'unprocessed') {
 							//UPDATE uid within omcrowdsourcequeue, only if not yet processed
 							$isVolunteer = true;
 							if (array_key_exists('CollAdmin', $USER_RIGHTS) && in_array($this->collId, $USER_RIGHTS['CollAdmin'])) $isVolunteer = false;
