@@ -32,7 +32,7 @@
           RIGHT side: Absolute path on your host where the same code lives.
                       Make sure this exactly matches your local folder path.
         */
-        "/var/www/html/symbiota": "/Users/nihaldas/Documents/BU Spark/Herbaria/fix dwc upload/se-symbiota"
+        "/var/www/html/symbiota": "/Users/nihaldas/Documents/BU Spark/Herbaria/debugger-branch/se-symbiota"
       }
     }
   ]
