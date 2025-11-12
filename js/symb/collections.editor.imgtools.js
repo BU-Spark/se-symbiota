@@ -113,25 +113,44 @@ function changeImgRes(resType){
 	}
 }
 
-function rotateImage(rotationAngle){
-	var imgObj = document.getElementById("activeimg-"+activeImgIndex);
+function rotateImage(rotationAngle, imgIndex){
+	if(typeof imgIndex === 'undefined') {
+		imgIndex = activeImgIndex;
+	}
+	
+	var imgObj = document.getElementById("activeimg-"+imgIndex);
+	if(!imgObj){
+		console.error("Image element not found: activeimg-" + imgIndex);
+		return;
+	}
+	
 	var imgAngle = 0;
 	if(imgObj.style.transform){
 		var transformValue = imgObj.style.transform;
-		imgAngle = parseInt(transformValue.substring(7));
+		var match = transformValue.match(/rotate\((-?\d+)deg\)/);
+		if(match){
+			imgAngle = parseInt(match[1]);
+		}
 	}
+	
 	imgAngle = imgAngle + rotationAngle;
 	if(imgAngle < 0) imgAngle = 360 + imgAngle;
-	else if(imgAngle == 360) imgAngle = 0;
+	else if(imgAngle >= 360) imgAngle = imgAngle % 360;
+	
 	imgObj.style.transform = "rotate("+imgAngle+"deg)";
-	$(imgObj).imagetool("option","rotationAngle",imgAngle);
-	$(imgObj).imagetool("reset");
+	
+	if(typeof $ !== 'undefined' && $(imgObj).data('imagetool')){
+		$(imgObj).imagetool("option","rotationAngle",imgAngle);
+		$(imgObj).imagetool("reset");
+	}
 }
 
 function ocrImage(ocrButton, target, imgidVar, imgCnt){
 	ocrButton.disabled = true;
 	let wcElem = document.getElementById("workingcircle-"+target+"-"+imgCnt);
-	wcElem.style.display = "inline";
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 	
 	let imgObj = document.getElementById("activeimg-"+imgCnt);
 	let xVar = 0;
@@ -172,13 +191,18 @@ function ocrImage(ocrButton, target, imgidVar, imgCnt){
 		else target = "Digi-Leap";
 		addform.rawsource.value = target+": "+yyyy+"-"+mm+"-"+dd;
 		
-		wcElem.style.display = "none";
+		if (wcElem) {
+			wcElem.style.display = "none";
+		}
 		ocrButton.disabled = false;
 	});
 }
 
 function nlpLbcc(nlpButton,prlid){
-	document.getElementById("workingcircle_lbcc-"+prlid).style.display = "inline";
+	let wcElem = document.getElementById("workingcircle_lbcc-"+prlid);
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 	nlpButton.disabled = true;
 	var f = nlpButton.form;
 	var rawOcr = f.rawtext.innerText;
@@ -193,12 +217,18 @@ function nlpLbcc(nlpButton,prlid){
 	}).done(function( msg ) {
 		pushDwcArrToForm(msg, "#ebbb7f");
 		nlpButton.disabled = false;
-		document.getElementById("workingcircle_lbcc-"+prlid).style.display = "none";
+		let wcElem = document.getElementById("workingcircle_lbcc-"+prlid);
+		if (wcElem) {
+			wcElem.style.display = "none";
+		}
 	});
 }
 
 function nlpSalix(nlpButton,prlid){
-	document.getElementById("workingcircle_salix-"+prlid).style.display = "inline";
+	let wcElem = document.getElementById("workingcircle_salix-"+prlid);
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 	nlpButton.disabled = true;
 	var f = nlpButton.form;
 	var rawOcr = f.rawtext.innerText;
@@ -211,7 +241,10 @@ function nlpSalix(nlpButton,prlid){
 	}).done(function( msg ) {
 		pushDwcArrToForm(msg,"#77dd77");
 		nlpButton.disabled = false;
-		document.getElementById("workingcircle_salix-"+prlid).style.display = "none";
+		let wcElem = document.getElementById("workingcircle_salix-"+prlid);
+		if (wcElem) {
+			wcElem.style.display = "none";
+		}
 	});
 }
 
@@ -291,7 +324,9 @@ function quickEntryOcrImage(ocrButton, imgidVar, imgCnt, imgURl) {
 
 	// Show loading spinner
 	let wcElem = document.getElementById("workingcircle-tess-" + imgCnt);
-	wcElem.style.display = "inline";
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 
 	// Get selected OCR 
 	let target = document.getElementById("ocr-method").value;
@@ -338,13 +373,17 @@ function quickEntryOcrImage(ocrButton, imgidVar, imgCnt, imgURl) {
 			let rawtextBox = document.getElementById("rawtext");
 			rawtextBox.value = plainTextResponse;
 
-			wcElem.style.display = "none";
+			if (wcElem) {
+				wcElem.style.display = "none";
+			}
 			ocrButton.disabled = false;
 		},
 		error: function(xhr, status, error) {
 			storedOcrResponse = "OCR Failed";
 			console.error("External OCR Error: ", error);
-			wcElem.style.display = "none";
+			if (wcElem) {
+				wcElem.style.display = "none";
+			}
 			ocrButton.disabled = false;
 		}
 	});
@@ -557,20 +596,6 @@ $(function() {
 		$( "#zoomInfoDialog" ).dialog( "open" );
 	});
 });
-function rotateImage(rotationAngle){
-	var imgObj = document.getElementById("activeimg-0");
-	var imgAngle = 0;
-	if(imgObj.style.transform){
-		var transformValue = imgObj.style.transform;
-		imgAngle = parseInt(transformValue.substring(7));
-	}
-	imgAngle = imgAngle + rotationAngle;
-	if(imgAngle < 0) imgAngle = 360 + imgAngle;
-	else if(imgAngle == 360) imgAngle = 0;
-	imgObj.style.transform = "rotate("+imgAngle+"deg)";
-	$(imgObj).imagetool("option","rotationAngle",imgAngle);
-	$(imgObj).imagetool("reset");
-}
 
 function floatImgPanel(){
 	$( "#labelProcFieldset" ).css('position', 'fixed');
