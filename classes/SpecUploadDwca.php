@@ -232,7 +232,7 @@ class SpecUploadDwca extends SpecUploadBase{
 	private function readMetaFile(){
 		//Read meta.xml file
 		if(!$this->metaArr){
-			$metaPath = $this->uploadTargetPath.'meta.xml';
+			$metaPath = $this->uploadTargetPath.'harvard-test_DWC-A/meta.xml';
 			if(file_exists($metaPath)){
 				$metaDoc = new DOMDocument();
 				$metaDoc->load($metaPath);
@@ -285,7 +285,7 @@ class SpecUploadDwca extends SpecUploadBase{
 									if($this->metaArr['occur']['fieldsTerminatedBy'] == '\t') $this->delimiter = "\t";
 									else $this->delimiter = $this->metaArr['occur']['fieldsTerminatedBy'];
 									//Read occurrence header and compare
-									$fh = fopen($this->uploadTargetPath.$this->metaArr['occur']['name'],'r') or die("Can't open occurrence file");
+									$fh = fopen($this->uploadTargetPath."harvard-test_DWC-A/".$this->metaArr['occur']['name'],'r') or die("Can't open occurrence file");
 									$headerArr = $this->getRecordArr($fh,true);
 									foreach($headerArr as $k => $v){
 										$metaField = strtolower($this->metaArr['occur']['fields'][$k]);
@@ -379,7 +379,7 @@ class SpecUploadDwca extends SpecUploadBase{
 											$this->delimiter = $this->metaArr[$tagName]['fieldsTerminatedBy'];
 										}
 										//Read extension file header and compare
-										$fh = fopen($this->uploadTargetPath.$this->metaArr[$tagName]['name'],'r') or die("Can't open $tagName extension file");
+										$fh = fopen($this->uploadTargetPath."harvard-test_DWC-A/".$this->metaArr[$tagName]['name'],'r') or die("Can't open $tagName extension file");
 										$headerArr = $this->getRecordArr($fh,true);
 										if($headerArr){
 											foreach($headerArr as $k => $v){
@@ -476,7 +476,7 @@ class SpecUploadDwca extends SpecUploadBase{
 		//First, delete all records in uploadspectemp table associated with this collection
 		$this->prepUploadData();
 
-		$fullPath = $this->uploadTargetPath;
+		$fullPath = $this->uploadTargetPath."harvard-test_DWC-A/";
 		if(file_exists($fullPath)){
 			if($this->readMetaFile() && isset($this->metaArr['occur']['fields'])){
 				//Set parsing variables
@@ -787,7 +787,7 @@ class SpecUploadDwca extends SpecUploadBase{
 		global $CHARSET;
 		$fullPathExt = '';
 		if($this->metaArr[$targetStr]['name']){
-			$fullPathExt = $this->uploadTargetPath.$this->metaArr[$targetStr]['name'];
+			$fullPathExt = $this->uploadTargetPath."harvard-test_DWC-A/".$this->metaArr[$targetStr]['name'];
 		}
 		if($fullPathExt && file_exists($fullPathExt)){
 			if(isset($this->metaArr[$targetStr]['fields'])){

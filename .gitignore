@@ -17,3 +17,10 @@ includes/citationdataset.php
 includes/citationportal.php
 .DS_Store
 **/.DS_Store
+
+# Ignore everything in the .vscode directory by default
+.vscode/*
+
+# But DO NOT ignore (re-include) these specific files
+!/.vscode/extensions.json
+!/.vscode/launch.json

@@ -112,6 +112,27 @@ if (isset($_REQUEST['batchid'])) {
      $barcode = $occManager->getBarcode($currentImgId);
    }
 }
+    $batchId = $_REQUEST['batchid'];
+    // Use $batchId as needed
+	$imgIDs = $occManager->getImgIDs($batchId);
+	$firstImgId = $imgIDs[0];
+	$firstBarcode = $occManager->getBarcode($firstImgId);
+	$firstIndex = 0;
+	$lastImgId = end($imgIDs);
+	$lastBarcode = $occManager->getBarcode($lastImgId);
+	$lastIndex = count($imgIDs) - 1;
+	$imgNum = count($imgIDs);
+	$currentImgId = $_REQUEST['imgid'];
+	$currentImgIndex = $_REQUEST['imgindex'];
+	$occData = array();
+	// occData is a hashtable, which has imgid as key, and occid as value
+	foreach ($imgIDs as $imgID) {
+        $occData[$imgID] = $occManager->getOneOccID($imgID);
+    }
+	$firstOccId = $occData[$firstImgId];
+	$lastOccId = $occData[$lastImgId];
+	$barcode = $occManager->getBarcode($currentImgId);
+} 
 
 //Sanitation
 if(!is_numeric($occId)) $occId = '';
@@ -135,7 +156,6 @@ $moduleActivation = array();
 $statusStr = '';
 $navStr = '';
 $isEditor = 0;
-$notesValue = '';
 
 if($SYMB_UID){
 	//Set variables
@@ -233,7 +253,11 @@ if($SYMB_UID){
 		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
 		$updateSuccess = $occManager->updateLastEdited($batchId, $currentImgId);
 	} 
-
+	// save TODO: need to update this correctly
+	elseif ($action == 'saveOCR'){
+		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
+		$updateSuccess = $occManager->updateLastEdited($batchId, $currentImgId);
+	}
 	if($isEditor){
 		//Available to full editors and taxon editors
 		if($action == 'submitDetermination'){
@@ -398,6 +422,21 @@ if($SYMB_UID){
 			}
 		}
 	}
+
+	// save TODO: need to update this correctly
+	// if ($action == 'SaveOCR') {	
+	// 	// Save parsed OCR results into ocr_results table
+	// 	// $statusStr = $occManager->editOccurrence($_POST,$isEditor);
+	// 	$ocrSaved = $occManager->saveOCRResultsToDB(
+	// 		$_POST['imgid'],
+	// 		$_POST['collid'],
+	// 		$_POST['rawtext']
+	// 	);
+	
+	// 	if (!$ocrSaved) {
+	// 		error_log("Failed to save OCR results: " . implode("; ", $occManager->errorArr));
+	// 	}
+	// }
 
 	if($goToMode){
 		//Adding new record, override query form and prime for current user's dataentry for the day
