@@ -910,6 +910,9 @@ class OccurrenceEditorManager {
 				} else if (strcasecmp($fName, 'exstitle') == 0) {
 					unset($editArr[$k]);
 					$editArr[$k] = 'title';
+				} else if (strcasecmp($fName, 'barcode') == 0) {
+					unset($editArr[$k]);
+					$editArr[$k] = 'catalognumber';
 				}
 			}
 			if ($editArr || $quickHostEntered) {
@@ -967,9 +970,9 @@ class OccurrenceEditorManager {
 							if (!$postArr['family']) $postArr['family'] = $r2->family;
 						}
 						$rs2->free();
-					}
-					//If additional identifiers exist, NULL otherCatalogNumbers
-					if (isset($postArr['idvalue']) && !empty($postArr['idvalue'][0])) $postArr['othercatalognumbers'] = '';
+				}
+				//If additional identifiers exist, NULL otherCatalogNumbers
+				if (!empty($postArr['idvalue'][0])) $postArr['othercatalognumbers'] = '';
 
 					//If processing status was "unprocessed" and recordEnteredBy is null, populate with user login
 					$oldProcessingStatus = isset($oldValueArr['omoccurrences']['processingstatus']) ? $oldValueArr['omoccurrences']['processingstatus'] : '';
@@ -983,11 +986,9 @@ class OccurrenceEditorManager {
 						'VALUES (' . $this->occid . ',1,' . ($autoCommit ? '1' : '0') . ',' . $GLOBALS['SYMB_UID'] . ',';
 					foreach ($editFieldArr as $tableName => $fieldArr) {
 						if ($tableName == 'omoccuridentifiers') {
-							if ($fieldArr && isset($postArr['idkey']) && isset($postArr['idname']) && isset($postArr['idvalue'])) {
+							if ($fieldArr) {
 								foreach ($postArr['idkey'] as $idIndex => $idKey) {
-									$idName = isset($postArr['idname'][$idIndex]) ? $postArr['idname'][$idIndex] : '';
-									$idValue = isset($postArr['idvalue'][$idIndex]) ? $postArr['idvalue'][$idIndex] : '';
-									$newValue = $idName . ($idName ? ': ' : '') . $idValue;
+									$newValue = $postArr['idname'][$idIndex] . ($postArr['idname'][$idIndex] ? ': ' : '') . $postArr['idvalue'][$idIndex];
 									$oldValue = '';
 									if (is_numeric($idKey)) $oldValue = $oldValueArr['omoccuridentifiers'][$idKey];
 									if ($oldValue != $newValue) {
@@ -1036,6 +1037,10 @@ class OccurrenceEditorManager {
 						if (isset($postArr['collectioncode']) && $postArr['collectioncode'] == $this->collMap['collectioncode']) $postArr['collectioncode'] = '';
 						if (isset($postArr['ownerinstitutioncode']) && $postArr['ownerinstitutioncode'] == $this->collMap['institutioncode']) $postArr['ownerinstitutioncode'] = '';
 					}
+					if (isset($postArr['barcode'])) {
+						$barcodeValue = trim($postArr['barcode']);
+						$postArr['catalognumber'] = $barcodeValue;
+					}
 					$occurFieldArr = array_keys($this->fieldArr['omoccurrences']);
 					foreach ($postArr as $oField => $ov) {
 						if (in_array($oField, $occurFieldArr) && $oField != 'observeruid') {
@@ -1061,11 +1066,10 @@ class OccurrenceEditorManager {
 						} else $sqlHost = 'INSERT INTO omoccurassociations(occid,associationType,relationship,verbatimsciname) VALUES(' . $this->occid . ',"observational","host","' . $postArr['host'] . '")';
 						$this->conn->query($sqlHost);
 					}
-					//Update occurrence record
-					$sql = 'UPDATE IGNORE omoccurrences SET ' . substr($sql, 1) . ' WHERE (occid = ' . $this->occid . ')';
-					if ($this->conn->query($sql)) {
-						$processingStatus = isset($postArr['processingstatus']) ? strtolower($postArr['processingstatus']) : '';
-						if ($processingStatus != 'unprocessed') {
+				//Update occurrence record
+				$sql = 'UPDATE IGNORE omoccurrences SET ' . substr($sql, 1) . ' WHERE (occid = ' . $this->occid . ')';
+				if ($this->conn->query($sql)) {
+					if (isset($postArr['processingstatus']) && strtolower($postArr['processingstatus']) != 'unprocessed') {
 							//UPDATE uid within omcrowdsourcequeue, only if not yet processed
 							$isVolunteer = true;
 							if (array_key_exists('CollAdmin', $USER_RIGHTS) && in_array($this->collId, $USER_RIGHTS['CollAdmin'])) $isVolunteer = false;
@@ -1188,25 +1192,60 @@ class OccurrenceEditorManager {
 
 	public function saveOcrResult($imgId, $notes = null, $rawNotes = null, $rawSource = null) {
 		$status = '';
-		$imgId = filter_var($imgId, FILTER_SANITIZE_NUMBER_INT);
+		$mediaID = filter_var($imgId, FILTER_SANITIZE_NUMBER_INT);
 		$notes = ($notes !== null) ? trim($notes) : null;
-		$rawNotes = ($rawNotes !== null) ? filter_var($rawNotes, FILTER_SANITIZE_STRING) : null;
-		$rawSource = ($rawSource !== null) ? filter_var($rawSource, FILTER_SANITIZE_STRING) : null;
+		$rawNotes = ($rawNotes !== null) ? trim($rawNotes) : null;
+		$rawSource = ($rawSource !== null) ? trim($rawSource) : null;
 	
-		if ($imgId !== null) {
+		if ($mediaID !== null) {
 	
 			if ($this->conn) {
-				$sql = "UPDATE media SET notes = ?, ocr_notes = ?, ocr_source = ? WHERE mediaID = ?";
-				$stmt = $this->conn->prepare($sql);
-				if ($stmt) {
-					$stmt->bind_param("sssi", $notes, $rawNotes, $rawSource, $imgId);
-					if ($stmt->execute()) {
-						$status = $LANG['OCR_SAVED_SUCCESSFULLY'] ?? 'OCR results saved successfully.';
+				// Insert or update OCR results in specprocessorrawlabels table
+				// First, check if a record already exists for this media
+				$checkSql = "SELECT prlid FROM specprocessorrawlabels WHERE mediaID = ? ORDER BY initialTimestamp DESC LIMIT 1";
+				$checkStmt = $this->conn->prepare($checkSql);
+				if ($checkStmt) {
+					$checkStmt->bind_param("i", $mediaID);
+					$checkStmt->execute();
+					$checkStmt->bind_result($existingPrlid);
+					$checkStmt->fetch();
+					$checkStmt->close();
+					
+					if ($existingPrlid) {
+						// Update existing record
+						$sql = "UPDATE specprocessorrawlabels SET rawstr = ?, notes = ?, source = ? WHERE prlid = ?";
+						$stmt = $this->conn->prepare($sql);
+						if ($stmt) {
+							$stmt->bind_param("sssi", $notes, $rawNotes, $rawSource, $existingPrlid);
+							if ($stmt->execute()) {
+								$status = $LANG['OCR_SAVED_SUCCESSFULLY'] ?? 'OCR results saved successfully.';
+							} else {
+								$status = $LANG['ERROR_SAVING_OCR'] ?? 'Error saving OCR results: ' . $stmt->error;
+								$this->errorArr[] = $status;
+							}
+							$stmt->close();
+						} else {
+							$status = $LANG['ERROR_PREPARING_STATEMENT'] ?? 'Error preparing statement: ' . $this->conn->error;
+							$this->errorArr[] = $status;
+						}
 					} else {
-						$status = $LANG['ERROR_SAVING_OCR'] ?? 'Error saving OCR results: ' . $stmt->error;
-						$this->errorArr[] = $status;
+						// Insert new record
+						$sql = "INSERT INTO specprocessorrawlabels (mediaID, rawstr, notes, source) VALUES (?, ?, ?, ?)";
+						$stmt = $this->conn->prepare($sql);
+						if ($stmt) {
+							$stmt->bind_param("isss", $mediaID, $notes, $rawNotes, $rawSource);
+							if ($stmt->execute()) {
+								$status = $LANG['OCR_SAVED_SUCCESSFULLY'] ?? 'OCR results saved successfully.';
+							} else {
+								$status = $LANG['ERROR_SAVING_OCR'] ?? 'Error saving OCR results: ' . $stmt->error;
+								$this->errorArr[] = $status;
+							}
+							$stmt->close();
+						} else {
+							$status = $LANG['ERROR_PREPARING_STATEMENT'] ?? 'Error preparing statement: ' . $this->conn->error;
+							$this->errorArr[] = $status;
+						}
 					}
-					$stmt->close();
 				} else {
 					$status = $LANG['ERROR_PREPARING_STATEMENT'] ?? 'Error preparing statement: ' . $this->conn->error;
 					$this->errorArr[] = $status;
@@ -1216,7 +1255,7 @@ class OccurrenceEditorManager {
 				$this->errorArr[] = $status;
 			}
 		} else {
-			$status = $LANG['MISSING_IMAGE_ID'] ?? 'Error: Missing image ID.';
+			$status = $LANG['MISSING_IMAGE_ID'] ?? 'Error: Missing media ID.';
 			$this->errorArr[] = $status;
 		}
 	
@@ -2491,9 +2530,10 @@ class OccurrenceEditorManager {
 			else $sql .= 'WHERE (occid = '.$this->occid.') ';
 			$sql .= 'ORDER BY sortoccurrence';
 			//echo $sql;
+			// NOTE: imgid is used for our current database, but the latest Symbiota is uisng mediaID.  
 			$result = $this->conn->query($sql);
 			while($row = $result->fetch_object()){
-				$imageMap[$row->mediaID]['url'] = $row->sourceIdentifier;
+				$imageMap[$row->mediaID]['url'] = $row->url ? $row->url : $row->originalurl;
 				$imageMap[$row->mediaID]['tnurl'] = $row->thumbnailurl;
 				$imageMap[$row->mediaID]['origurl'] = $row->originalurl;
 				$imageMap[$row->mediaID]['caption'] = $this->cleanOutStr($row->caption);
@@ -2513,7 +2553,7 @@ class OccurrenceEditorManager {
 
 	protected function getImageTags($imgIdStr) {
 		$retArr = array();
-		$sql = 'SELECT t.mediaID, k.tagkey, k.shortlabel, k.description_en FROM imagetag t INNER JOIN imagetagkey k ON t.keyValue = k.tagkey WHERE t.mediaID IN(' . $imgIdStr . ')';
+		$sql = 'SELECT t.mediaID, k.tagkey, k.shortlabel, k.description_en FROM imagetag t INNER JOIN imagetagkey k ON t.keyvalue = k.tagkey WHERE t.mediaID IN(' . $imgIdStr . ')';
 		$rs = $this->conn->query($sql);
 		while ($r = $rs->fetch_object()) {
 			$retArr[$r->mediaID][$r->tagkey] = $r->shortlabel;
@@ -2835,33 +2875,38 @@ class OccurrenceEditorManager {
 	}
 	
 	// For quick entry form
-	public function getImgIDs($batchID) {
+	public function getImgIDs() {
 		$imgIDs = array();
-		$query = "SELECT mediaID FROM batch_XREF WHERE batchID = '$batchID'";
+		$query = "SELECT mediaId FROM media";
 		$result = $this->conn->query($query);
 		while ($row = $result->fetch_assoc()) {
-			$imgIDs[] = $row['mediaID'];
+			$imgIDs[] = $row['mediaId'];
 		}
 		$result->free();
 		return $imgIDs;
 	}
 	
 	public function getBarcode($imgID) {
-		$query = "SELECT barcode FROM images_barcode WHERE mediaID = '$imgID' LIMIT 1";
-		$result = $this->conn->query($query);
-		if ($result && $row = $result->fetch_assoc()) {
-			$barcode = $row['barcode'];
-		} else {
-			$barcode = null; 
+		$occid = $this->getOneOccID($imgID);
+		$barcode = null;
+		
+		if ($occid) {
+			$query = "SELECT catalogNumber FROM omoccurrences WHERE occid = '$occid' LIMIT 1";
+			$result = $this->conn->query($query);
+			if ($result && $row = $result->fetch_assoc()) {
+				$barcode = $row['catalogNumber'];
+			}
+			if ($result) {
+				$result->free();
+			}
 		}
 		
-		$result->free();
 		return $barcode;
 	}
 
 	// we use the notes column to store the OCR results temporarily. You should update this to the right column afterwards
 	public function getOCRResult($imgID) {
-		$query = "SELECT notes FROM media WHERE mediaID = '$imgID' LIMIT 1";
+		$query = "SELECT notes FROM media WHERE mediaId = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 		if ($result && $row = $result->fetch_assoc()) {
 			$notes = $row['notes'];
@@ -2875,7 +2920,7 @@ class OccurrenceEditorManager {
 
 	public function getOneOccID($imgId) {
 		$occid = false;
-		$query = "SELECT occid FROM media WHERE mediaID = '$imgId' LIMIT 1";
+		$query = "SELECT occid FROM media WHERE mediaId = '$imgId' LIMIT 1";
 		$result = $this->conn->query($query);
 
 		if ($result && $row = $result->fetch_assoc()) {
