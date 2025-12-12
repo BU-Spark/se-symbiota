@@ -32,29 +32,86 @@ if($crowdSourceMode){
 	$occManager->setCrowdSourceMode(1);
 }
 
+$imgIDs = array();
+$firstImgId = null;
+$firstBarcode = null;
+$firstIndex = 0;
+$lastImgId = null;
+$lastBarcode = null;
+$lastIndex = -1;
+$imgNum = 0;
+$currentImgId = isset($_REQUEST['imgid']) ? $_REQUEST['imgid'] : null;
+$currentImgIndex = isset($_REQUEST['imgindex']) ? $_REQUEST['imgindex'] : 0;
+$occData = array();
+$ocrResults = null;
+$firstOccId = null;
+$lastOccId = null;
+$barcode = null;
+
 if (isset($_REQUEST['batchid'])) {
-    $batchId = $_REQUEST['batchid'];
-    // Use $batchId as needed
-	$imgIDs = $occManager->getImgIDs($batchId);
-	$firstImgId = $imgIDs[0];
-	$firstBarcode = $occManager->getBarcode($firstImgId);
-	$firstIndex = 0;
-	$lastImgId = end($imgIDs);
-	$lastBarcode = $occManager->getBarcode($lastImgId);
-	$lastIndex = count($imgIDs) - 1;
-	$imgNum = count($imgIDs);
-	$currentImgId = $_REQUEST['imgid'];
-	$currentImgIndex = $_REQUEST['imgindex'];
-	$occData = array();
-	$ocrResults =  $occManager->getOCRResult($lastImgId);
-	// occData is a hashtable, which has imgid as key, and occid as value
-	foreach ($imgIDs as $imgID) {
-        $occData[$imgID] = $occManager->getOneOccID($imgID);
-    }
-	$firstOccId = $occData[$firstImgId];
-	$lastOccId = $occData[$lastImgId];
-	$barcode = $occManager->getBarcode($currentImgId);
-} 
+   $batchId = $_REQUEST['batchid'];
+   // Use $batchId as needed
+ $imgIDs = $occManager->getImgIDs($batchId);
+  // Check if imgIDs array is not empty before accessing elements
+ if (!empty($imgIDs)) {
+   $firstImgId = $imgIDs[0];
+   $firstBarcode = $occManager->getBarcode($firstImgId);
+   $firstIndex = 0;
+   $lastImgId = end($imgIDs);
+   $lastBarcode = $occManager->getBarcode($lastImgId);
+   $lastIndex = count($imgIDs) - 1;
+   $imgNum = count($imgIDs);
+   $currentImgId = $_REQUEST['imgid'];
+   $currentImgIndex = $_REQUEST['imgindex'];
+   $occData = array();
+   $ocrResults =  $occManager->getOCRResult($lastImgId);
+   // occData is a hashtable, which has imgid as key, and occid as value
+   foreach ($imgIDs as $imgID) {
+     $occData[$imgID] = $occManager->getOneOccID($imgID);
+   }
+   $firstOccId = $occData[$firstImgId];
+   $lastOccId = $occData[$lastImgId];
+   $barcode = $occManager->getBarcode($currentImgId);
+ } else {
+   // Handle case when no images are found
+   $firstImgId = null;
+   $firstBarcode = null;
+   $firstIndex = 0;
+   $lastImgId = null;
+   $lastBarcode = null;
+   $lastIndex = -1;
+   $imgNum = 0;
+   $currentImgId = isset($_REQUEST['imgid']) ? $_REQUEST['imgid'] : null;
+   $currentImgIndex = isset($_REQUEST['imgindex']) ? $_REQUEST['imgindex'] : 0;
+   $occData = array();
+   $ocrResults = null;
+   $firstOccId = null;
+   $lastOccId = null;
+   $barcode = null;
+ }
+} else {
+   // Handle case when batchid is not set - get all images
+   $imgIDs = $occManager->getImgIDs();
+   if (!empty($imgIDs)) {
+     $firstImgId = $imgIDs[0];
+     $firstBarcode = $occManager->getBarcode($firstImgId);
+     $firstIndex = 0;
+     $lastImgId = end($imgIDs);
+     $lastBarcode = $occManager->getBarcode($lastImgId);
+     $lastIndex = count($imgIDs) - 1;
+     $imgNum = count($imgIDs);
+     $currentImgId = $_REQUEST['imgid'];
+     $currentImgIndex = $_REQUEST['imgindex'];
+     $ocrResults = $occManager->getOCRResult($lastImgId);
+     // occData is a hashtable, which has imgid as key, and occid as value
+     foreach ($imgIDs as $imgID) {
+       $occData[$imgID] = $occManager->getOneOccID($imgID);
+     }
+     $firstOccId = $occData[$firstImgId];
+     $lastOccId = $occData[$lastImgId];
+     $barcode = $occManager->getBarcode($currentImgId);
+   }
+}
 
 //Sanitation
 if(!is_numeric($occId)) $occId = '';
@@ -63,7 +120,7 @@ if(!is_numeric($tabTarget)) $tabTarget = 0;
 if(!is_numeric($goToMode)) $goToMode = 0;
 if(!is_numeric($occIndex)) $occIndex = false;
 if(!is_numeric($crowdSourceMode)) $crowdSourceMode = 0;
-$action = filter_var($action,FILTER_SANITIZE_STRING);
+$action = htmlspecialchars(strip_tags($action), ENT_QUOTES, 'UTF-8');
 
 $displayQuery = 0;
 $isGenObs = 0;
@@ -171,7 +228,7 @@ if($SYMB_UID){
 			$isEditor = $occManager->isTaxonomicEditor();
 		}
 	}
-	include_once 'editProcessor.php';
+	include_once '../../collections/editor/editProcessor.php';
 	if($action == 'saveOccurEdits'){
 		$statusStr = $occManager->editOccurrence($_POST,$isEditor);
 		$updateSuccess = $occManager->updateLastEdited($batchId, $currentImgId);
@@ -388,6 +445,11 @@ if($SYMB_UID){
 			$occId = $occManager->getOccId();
 			$occArr = $oArr[$occId];
 			$occIndex = $occManager->getOccIndex();
+			if(isset($_POST['barcode']) && $_POST['barcode'] !== '') {
+				$barcode = $_POST['barcode'];
+			} elseif(isset($occArr['catalognumber']) && $occArr['catalognumber']) {
+				$barcode = $occArr['catalognumber'];
+			}
 			if(!$collMap){
 				$collMap = $occManager->getCollMap();
 				if(!$isEditor){
@@ -432,22 +494,22 @@ if($SYMB_UID){
 
 	if($imgNum !== false){
 		$navStr = '<b>';
-		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($firstImgId).', '.($firstIndex).', '.($firstBarcode).', '.($firstOccId).', '.($firstIndex).')" title="'.(isset($LANG['FIRST_REC'])?$LANG['FIRST_REC']:'First Record').'">';
+		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($firstImgId?$firstImgId:'null').', '.($firstIndex).', '.($firstBarcode?"'".$firstBarcode."'":'null').', '.($firstOccId?$firstOccId:'null').', '.($firstIndex).')" title="'.(isset($LANG['FIRST_REC'])?$LANG['FIRST_REC']:'First Record').'">';
 		$navStr .= '|&lt;';
 		if($currentImgIndex > 0) $navStr .= '</a>';
 		$navStr .= '&nbsp;&nbsp;&nbsp;&nbsp;';
-		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($prevImgid).', '.($currentImgIndex-1).', '.($prevBarcode).', '.($prevOccid).', '.($currentImgIndex-1).')" title="'.(isset($LANG['PREV_REC']) ? $LANG['PREV_REC'] : 'Previous Record').'">';
+		if($currentImgIndex > 0) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($prevImgid).', '.($currentImgIndex-1).', '.($prevBarcode?"'".$prevBarcode."'":'null').', '.($prevOccid).', '.($currentImgIndex-1).')" title="'.(isset($LANG['PREV_REC']) ? $LANG['PREV_REC'] : 'Previous Record').'">';
 		$navStr .= '&lt;&lt;';
 		if($currentImgIndex > 0) $navStr .= '</a>';
 		$recIndex = ($currentImgIndex<$imgNum?($currentImgIndex + 1):'*');
 		$navStr .= '&nbsp;&nbsp;| '.($recIndex).' of '.($imgNum).' |&nbsp;&nbsp;';
-		if ($currentImgIndex < $imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($nextImgid).', '.($currentImgIndex+1).', '.($nextBarcode).', '.($nextOccid).', '.($currentImgIndex+1).')" title="'.(isset($LANG['NEXT_REC']) ? $LANG['NEXT_REC']:'Next Record').'">';
+		if ($currentImgIndex < $imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($nextImgid).', '.($currentImgIndex+1).', '.($nextBarcode?"'".$nextBarcode."'":'null').', '.($nextOccid).', '.($currentImgIndex+1).')" title="'.(isset($LANG['NEXT_REC']) ? $LANG['NEXT_REC']:'Next Record').'">';
 		$navStr .= '&gt;&gt;';
-		if($occIndex<$imgNum-1) $navStr .= '</a>';
+		if($currentImgIndex < $imgNum-1) $navStr .= '</a>';
 		$navStr .= '&nbsp;&nbsp;&nbsp;&nbsp;';
-		if($occIndex<$imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($lastImgId).', '.($imgNum-1).', '.($lastBarcode).', '.($lastOccId).', '.($imgNum-1).')" title="'.(isset($LANG['LAST_REC'])?$LANG['LAST_REC']:'Last Record').'">';
+		if($currentImgIndex < $imgNum-1) $navStr .= '<a href="#" onclick="return navigateToRecordNew('.($crowdSourceMode).', '.($goToMode).', '.($collId).', '.($batchId).', '.($lastImgId?$lastImgId:'null').', '.($lastIndex).', '.($lastBarcode?"'".$lastBarcode."'":'null').', '.($lastOccId?$lastOccId:'null').', '.($lastIndex).')" title="'.(isset($LANG['LAST_REC'])?$LANG['LAST_REC']:'Last Record').'">';
 		$navStr .= '&gt;|';
-		if($occIndex<$imgNum-1) $navStr .= '</a> ';
+		if($currentImgIndex < $imgNum-1) $navStr .= '</a> ';
 		$navStr .= '</b>';
 	}
 
@@ -464,8 +526,8 @@ if($SYMB_UID){
 		$imgUrlPrefix = (isset($IMAGE_DOMAIN)?$IMAGE_DOMAIN:'');
 		$imgCnt = 1;
 		foreach($specImgArr as $imgId => $i2){
-			$iUrl = $i2['origurl'];
-			if($iUrl == 'empty' && $i2['origurl']) $iUrl = $i2['origurl'];
+			$iUrl = $i2['url'];
+			if(empty($iUrl) && !empty($i2['origurl'])) $iUrl = $i2['origurl'];
 			if($imgUrlPrefix && substr($iUrl,0,4) != 'http') $iUrl = $imgUrlPrefix.$iUrl;
 			$imgArr[$imgCnt]['imgid'] = $imgId;
 			$imgArr[$imgCnt]['web'] = $iUrl;
@@ -485,9 +547,9 @@ if($SYMB_UID){
 	// collect image arrays
 	$imgidCollection = [];
 	$imgUrlCollection = [];
-	foreach ($imgArr as $item) {
+	foreach ($imgArr as $index => $item) {
 		$imgidCollection[] = $item['imgid'];
-		$imgUrlCollection[] = $item['web'];
+		$imgUrlCollection[$item['imgid']] = $item['web']; 
 	}
 	$totalImage = count($imgidCollection);
 }
@@ -510,6 +572,7 @@ else{
 			var imgArr = [];
 			var imgLgArr = [];
 			var localityAutoLookup = <?php echo (defined('LOCALITYAUTOLOOKUP') && !LOCALITYAUTOLOOKUP?'0':'1'); ?>;
+			var activeImgIndex = <?php echo $currentImgId; ?>;
 
 			<?php
 			if($imgArr){
@@ -554,7 +617,7 @@ else{
 		<script src="../../js/symb/collections.georef.js?ver=2" type="text/javascript"></script>
 		<script src="../../js/symb/collections.editor.main.js?ver=3" type="text/javascript"></script>
 		<script src="../../js/symb/collections.editor.tools.js?ver=4" type="text/javascript"></script>
-		<script src="../../js/symb/collections.editor.imgtools.js?ver=3" type="text/javascript"></script>
+		<script src="../../js/symb/collections.editor.imgtools.js?ver=4" type="text/javascript"></script>
 		<script src="../../js/jquery.imagetool-1.7.js?ver=140310" type="text/javascript"></script>
 		<script src="../../js/symb/collections.editor.query.js?ver=6" type="text/javascript"></script>
 		<script>
@@ -626,11 +689,17 @@ else{
 			<?php
 			if($isEditor && ($occId || ($collId && $isEditor < 3))){
 				if(!$occArr && !$goToMode) $displayQuery = 1;
-				include 'includes/queryform.php';
+				include '../../collections/editor/includes/queryform.php';
 				?>
-				<h2>
+				<h2 id="institution-code-display">
 				<?php
-					echo("text");
+					$institutionCode = '';
+					if(array_key_exists('institutioncode',$occArr) && $occArr['institutioncode']){
+						$institutionCode = $occArr['institutioncode'];
+					}
+					elseif(isset($collMap['institutioncode'])){
+						$institutionCode = $collMap['institutioncode'];
+					}
 					echo($institutionCode);
 				?>
 				</h2>
@@ -780,10 +849,10 @@ else{
 							</div>
 							<?php if(!isset($_POST['toggle-button']) || (isset($_POST['toggle-button']) && $_POST['toggle-button'] != 'Minimal')): ?>
 								<div class="field-block">
-									<span class="field-label"><?php echo (isset($LANG['IDQUALIFIER']) ? $LANG['IDQUALIFIER'] : 'ID Qualifier'); ?></span>
+									<span class="field-label"><?php echo (isset($LANG['IDENTIFICATION_QUALIFIER']) ? $LANG['IDENTIFICATION_QUALIFIER'] : 'ID Qualifier'); ?></span>
 									<span class="field-elem">
 										<select name="idQualifier" onchange="fieldChanged('idQualifier');">
-											<option value=""><?php echo $LANG['IDQUALIFIER']; ?>Select Your ID Qualifier</option>
+											<option value="">Select Your ID Qualifier</option>
 											<option value="">---------------------------------------</option>
 											<?php
 											$idqArr = array('s. str.', '?', 'not', 'cf.', 's. lat.', 'aff.');
@@ -1022,9 +1091,9 @@ else{
 									<input type="hidden" name="batchid" value="<?php echo $batchId; ?>">
 									<input type="hidden" name="imgid" value="<?php echo $imgId; ?>">
 									<input type="hidden" name="imgindex" value="<?php echo $currentImgIndex; ?>">
-									<input type="hidden" name="barcode" value="<?php echo $barcode; ?>">
 									<input type="hidden" name="occid" value="<?php echo $occId; ?>">
 									<input type="hidden" name="occindex" value="<?php echo $occIndex; ?>">
+									<input type="hidden" name="institutioncode" value="<?php echo array_key_exists('institutioncode',$occArr)?$occArr['institutioncode']:''; ?>">
 										<?php
 										if($occId){
 											?>
@@ -1034,7 +1103,7 @@ else{
 													<button 
 														type="submit" 
 														value="Previous" 
-														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $batchId . ', ' . $prevImgid . ', ' . ($currentImgIndex-1) . ', ' . $prevBarcode . ', ' . $prevOccid . ', ' . ($currentImgIndex-1); ?>)">
+														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $batchId . ', ' . $prevImgid . ', ' . ($currentImgIndex-1) . ', ' . ($prevBarcode ? "'".$prevBarcode."'" : 'null') . ', ' . $prevOccid . ', ' . ($currentImgIndex-1); ?>)">
 														Previous
 													</button>
 													<a href="../misc/collprofiles.php?collid=<?php echo $collId; ?>&emode=1" >
@@ -1043,7 +1112,7 @@ else{
 													<button 
 														type="submit" 
 														value="Next" 
-														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $batchId . ', ' . $nextImgid . ', ' . ($currentImgIndex+1) . ', ' . $nextBarcode . ', ' . $nextOccid . ', ' . ($currentImgIndex+1); ?>)">
+														onclick="navigateToRecordNew(<?php echo $crowdSourceMode . ', ' . $goToMode . ', ' . $collId . ', ' . $batchId . ', ' . $nextImgid . ', ' . ($currentImgIndex+1) . ', ' . ($nextBarcode ? "'".$nextBarcode."'" : 'null') . ', ' . $nextOccid . ', ' . ($currentImgIndex+1); ?>)">
 														Next
 													</button>
 													<input type="hidden" name="occindex" value="<?php echo is_numeric($occIndex)?$occIndex:''; ?>" />
@@ -1084,6 +1153,8 @@ else{
 						</div>
 						<div style = "backgroufnd-color:#86C5D8; text-align: center; height: 450px;">
 							<?php
+								$imgId = $currentImgId;
+								$currentImageId = $currentImgId;
 								include_once($SERVER_ROOT.'/collections/editor/includes/quickentryimgprocessor.php');
 							?>
 						</div>
