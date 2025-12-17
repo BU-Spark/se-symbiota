@@ -39,9 +39,10 @@ services:
       - ${DATA_DIR:-/mnt/symbiota/data}/imglib:/var/www/html/symbiota/content/imglib:z
       - ${DATA_DIR:-/mnt/symbiota/data}/logs:/var/www/html/symbiota/content/logs:z
 
-      # Mount config at runtime (keep secrets out of image)
-      # Config file from /mnt/symbiota/app/config
-      - ${CONFIG_FILE:-/mnt/symbiota/app/config/symbini.php}:/var/www/html/symbiota/config/symbini.php:ro,z
+      # Mount entire config overlay at runtime (keep secrets out of image)
+      # Entrypoint script will copy these files over the generic code
+      # Config overlay from /opt/symbiota-config/{env}
+      - ${CONFIG_OVERLAY_DIR:-/opt/symbiota-config/alpha}:/config-overlay:ro,z
 
     depends_on:
       symbiota-db:
