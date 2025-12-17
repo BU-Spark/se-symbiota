@@ -1,0 +1,117 @@
+# Symbiota Production Docker Compose
+#
+# For production deployment with immutable container images
+# Code is baked into the image (Dockerfile.prod)
+# Only runtime data directories are mounted
+#
+# Usage:
+#   docker-compose --env-file .env.prod -f docker-compose.prod.yaml up -d
+#
+# For Quay.io automated deployment:
+#   Images are built automatically from v3.2.4-alpha branch
+#   Pull and restart to deploy: docker-compose pull && docker-compose up -d
+
+version: '3.8'
+
+services:
+  symbiota:
+    # Option 1: Pull from Quay.io (production)
+    image: ${QUAY_REGISTRY:-quay.io/bu-spark/symbiota}:${IMAGE_TAG:-alpha}
+
+    # Option 2: Build locally (testing before Quay setup)
+    # build:
+    #   context: ../..  # Repository root (two dirs up from containers/)
+    #   dockerfile: containers/ubuntuContainer/Dockerfile.prod
+    #   platforms:
+    #     - linux/amd64
+    #     - linux/arm64
+
+    container_name: symbiota-web
+    ports:
+      - "${HTTP_PORT:-80}:80"
+
+    volumes:
+      # Mount ONLY runtime data directories, NOT application code
+      # Code is baked into the image
+
+      # Runtime data on /mnt/symbiota/data
+      - ${DATA_DIR:-/mnt/symbiota/data}/temp:/var/www/html/symbiota/temp:z
+      - ${DATA_DIR:-/mnt/symbiota/data}/imglib:/var/www/html/symbiota/content/imglib:z
+      - ${DATA_DIR:-/mnt/symbiota/data}/logs:/var/www/html/symbiota/content/logs:z
+
+      # Mount config at runtime (keep secrets out of image)
+      # Config file from /mnt/symbiota/app/config
+      - ${CONFIG_FILE:-/mnt/symbiota/app/config/symbini.php}:/var/www/html/symbiota/config/symbini.php:ro,z
+
+    depends_on:
+      symbiota-db:
+        condition: service_healthy
+
+    networks:
+      - symbiota-network
+
+    environment:
+      - APACHE_LOG_LEVEL=${APACHE_LOG_LEVEL:-warn}
+
+    restart: unless-stopped
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  symbiota-db:
+    build:
+      context: ./mysqlContainer
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+
+    container_name: symbiota-db
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-symbiota}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+
+    volumes:
+      # Persistent database storage on /mnt/symbiota/data
+      - ${DATA_DIR:-/mnt/symbiota/data}/mysql:/var/lib/mysql:z
+
+      # Optional: Mount schema/backup files
+      # - ${SCHEMA_SOURCE:-/mnt/symbiota/app/schema}:/source:ro,z
+
+    networks:
+      - symbiota-network
+
+    restart: unless-stopped
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  symbiota-network:
+    driver: bridge
