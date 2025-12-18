@@ -41,8 +41,8 @@ services:
 
       # Mount entire config overlay at runtime (keep secrets out of image)
       # Entrypoint script will copy these files over the generic code
-      # Config overlay from /opt/symbiota-config/{env}
-      - ${CONFIG_OVERLAY_DIR:-/opt/symbiota-config/alpha}:/config-overlay:ro,z
+      # Config overlay from OpenStack /mnt/symbiota/app volume
+      - ${CONFIG_OVERLAY_DIR:-/mnt/symbiota/app/config/alpha}:/config-overlay:ro,z
 
     depends_on:
       symbiota-db:

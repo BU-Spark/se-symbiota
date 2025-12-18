@@ -45,7 +45,7 @@ When the container starts:
 ### On Host Server
 
 ```
-/opt/symbiota-config/
+/mnt/symbiota/app/config/
 ├── int/                           # Integration environment config
 │   ├── config/
 │   │   ├── dbconnection.php      # Integration DB credentials
@@ -96,17 +96,20 @@ When the container starts:
 
 ```bash
 # Create config directories
-sudo mkdir -p /opt/symbiota-config/{int,alpha}
+sudo mkdir -p /mnt/symbiota/app/config/{int,alpha}
 
 # Clone se-symbiota-private
 cd /tmp
 git clone --branch config-v3.2.4-local-dev git@github.com:BU-Spark/se-symbiota-private.git
 
 # Copy to integration config
-cp -r se-symbiota-private/* /opt/symbiota-config/int/
+sudo cp -r se-symbiota-private/* /mnt/symbiota/app/config/int/
 
 # Copy to alpha config
-cp -r se-symbiota-private/* /opt/symbiota-config/alpha/
+sudo cp -r se-symbiota-private/* /mnt/symbiota/app/config/alpha/
+
+# Set ownership
+sudo chown -R $(whoami):$(whoami) /mnt/symbiota/app/config
 
 # Clean up
 rm -rf se-symbiota-private
@@ -114,7 +117,7 @@ rm -rf se-symbiota-private
 
 ### 2. Customize Per Environment
 
-**Integration (`/opt/symbiota-config/int/config/dbconnection.php`):**
+**Integration (`/mnt/symbiota/app/config/int/config/dbconnection.php`):**
 ```php
 static $SERVERS = array(
     array(
@@ -138,7 +141,7 @@ static $SERVERS = array(
 );
 ```
 
-**Alpha (`/opt/symbiota-config/alpha/config/dbconnection.php`):**
+**Alpha (`/mnt/symbiota/app/config/alpha/config/dbconnection.php`):**
 ```php
 static $SERVERS = array(
     array(
@@ -166,18 +169,18 @@ static $SERVERS = array(
 
 **Integration (`.env.int`):**
 ```bash
-CONFIG_OVERLAY_DIR=/opt/symbiota-config/int
+CONFIG_OVERLAY_DIR=/mnt/symbiota/app/config/int
 ```
 
-**Alpha (`.env.prod`):**
+**Alpha (`.env.alpha`):**
 ```bash
-CONFIG_OVERLAY_DIR=/opt/symbiota-config/alpha
+CONFIG_OVERLAY_DIR=/mnt/symbiota/app/config/alpha
 ```
 
 ### 4. Start Container
 
 ```bash
-docker-compose --env-file .env.prod -f docker-compose.prod.yaml up -d
+docker-compose --env-file .env.alpha -f docker-compose.prod.yaml up -d
 ```
 
 **On startup, you'll see:**
@@ -221,21 +224,21 @@ git commit -am "Update Symbiota settings"
 git push
 
 # Deploy to integration
-cp -r ~/se-symbiota-private/* /opt/symbiota-config/int/
+cp -r ~/se-symbiota-private/* /mnt/symbiota/app/config/int/
 docker-compose restart symbiota-int
 
 # Deploy to alpha (after testing in int)
-cp -r ~/se-symbiota-private/* /opt/symbiota-config/alpha/
+cp -r ~/se-symbiota-private/* /mnt/symbiota/app/config/alpha/
 docker-compose restart symbiota-alpha
 ```
 
 ### Environment-Specific Changes
 
-Only change files in `/opt/symbiota-config/{env}/` directly:
+Only change files in `/mnt/symbiota/app/config/{env}/` directly:
 
 ```bash
 # Update only alpha database password
-vim /opt/symbiota-config/alpha/config/dbconnection.php
+vim /mnt/symbiota/app/config/alpha/config/dbconnection.php
 
 # Restart alpha
 docker-compose restart symbiota-alpha
