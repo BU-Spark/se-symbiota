@@ -16,7 +16,7 @@ version: '3.8'
 services:
   symbiota:
     # Option 1: Pull from Quay.io (production)
-    image: ${QUAY_REGISTRY:-quay.io/bu-spark/symbiota}:${IMAGE_TAG:-alpha}
+    image: ${QUAY_REGISTRY:-quay.io/langdon/se-symbiota}:${IMAGE_TAG:-v3.2.4-alpha}
 
     # Option 2: Build locally (testing before Quay setup)
     # build:
