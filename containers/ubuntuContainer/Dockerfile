@@ -1,64 +1,90 @@
-# Use the Ubuntu 22.04 image as the base image
+# Symbiota Web Application Container
+#
+# This Dockerfile creates a production-ready Symbiota container with:
+# - Ubuntu 22.04 base (matches current production deployment)
+# - PHP 8.1 + Apache
+# - Required PHP extensions
+# - Tesseract OCR
+# - Multi-architecture support (AMD64 + ARM64)
+
 FROM ubuntu:22.04
 
-# Disable popups asking for geography area
+# Build arguments for multi-arch support
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+
+# Disable interactive prompts during package installation
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Set working directory
 WORKDIR /home
 
-# Install necessary packages
+# Install Apache, PHP, and system utilities
 RUN apt-get update && apt-get install -y \
     bash \
     apache2 \
     php \
     libapache2-mod-php \
-    ufw \
     git \
-    openssl \
-    vim
+    vim \
+    unzip \
+    curl \
+    tesseract-ocr \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Enable required Apache modules
 RUN a2enmod php8.1
 
-# Allow Apache through the firewall
-#RUN ufw allow 'Apache'
-
 # Install PHP extensions
-RUN apt-get install -y \
+RUN apt-get update && apt-get install -y \
     php-mysqli \
     php-gd \
     php-mbstring \
     php-zip \
     php-curl \
     php-exif \
-    php-dom
+    php-dom \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Clone the GitHub repository
-# RUN cd /var/www/html && git clone -b summer-2023 --single-branch https://github.com/BU-Spark/se-Symbiota-portal.git
+# Copy Apache site configuration
+COPY 002-symbiota.conf /etc/apache2/sites-available/002-symbiota.conf
 
-# Copy symbiota config files to the apache2 directory
-COPY 002-symbiota.conf /etc/apache2/sites-available
+# Enable Symbiota site and disable default
+RUN a2dissite 000-default.conf && \
+    a2ensite 002-symbiota.conf && \
+    a2enmod rewrite
 
-# Enable symbiota site
-RUN a2dissite 000-default.conf
-RUN a2ensite 002-symbiota.conf
+# Set Apache environment variables
+ENV APACHE_RUN_DIR=/var/run/apache2 \
+    APACHE_LOG_DIR=/var/log/apache2 \
+    APACHE_LOCK_DIR=/var/lock/apache2 \
+    APACHE_RUN_USER=www-data \
+    APACHE_RUN_GROUP=www-data \
+    APACHE_PID_FILE=/var/run/apache2/apache2.pid
 
-# Expose port 80 for web traffic
-EXPOSE 80
-
-# Set environment variables
-ENV APACHE_RUN_DIR /var/run/apache2
-ENV APACHE_LOG_DIR /var/log/apache2
-ENV APACHE_LOCK_DIR /var/lock/apache2
-ENV APACHE_RUN_USER www-data
-ENV APACHE_RUN_GROUP www-data
-ENV APACHE_PID_FILE /var/run/apache2/apache2.pid
-
-# Make sure the required directories exist, if they didn't already exist
+# Create required directories
 RUN mkdir -p $APACHE_RUN_DIR $APACHE_LOCK_DIR $APACHE_LOG_DIR
 
-# Start bash
-# CMD ["/bin/bash"]
-# Start apache
-ENTRYPOINT ["/usr/sbin/apache2", "-DFOREGROUND"]
+# Expose HTTP port
+EXPOSE 80
+
+# Optional: Bake instance-specific config into image (production only)
+# Build argument to specify config directory
+ARG CONFIG_DIR
+# If CONFIG_DIR is set, copy config files into image
+# Usage: docker build --build-arg CONFIG_DIR=/path/to/config .
+RUN if [ -n "$CONFIG_DIR" ] && [ -d "$CONFIG_DIR" ]; then \
+        echo "Baking config from $CONFIG_DIR into image..."; \
+        cp -r "$CONFIG_DIR"/* /var/www/html/symbiota/; \
+    else \
+        echo "No config directory specified, skipping config bake-in"; \
+    fi
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
+
+# Start Apache in foreground
+ENTRYPOINT ["apache2-ctl", "-D", "FOREGROUND"]

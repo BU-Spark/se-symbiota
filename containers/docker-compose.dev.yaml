@@ -1,0 +1,64 @@
+# Symbiota Development Docker Compose
+#
+# For local development with live code editing
+# Uses bind mounts for instant code changes without rebuild
+
+version: '3.8'
+
+services:
+  symbiota:
+    build:
+      context: ./ubuntuContainer
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    container_name: symbiota-web-dev
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      # Bind mount code for live editing
+      - ${PROJECT_ROOT:-./../..}:/var/www/html/symbiota${SELINUX_FLAG}
+      # Separate data directories (on different filesystem for large datasets)
+      # Uncomment these if using bootstrap-symbiota.sh or separate storage
+      # - ${CONTENT_DIR}:/var/www/html/symbiota/content${SELINUX_FLAG}
+      # - ${LOGS_DIR}:/var/www/html/symbiota/content/logs${SELINUX_FLAG}
+    depends_on:
+      - symbiota-db
+    networks:
+      - symbiota-network
+    environment:
+      - APACHE_LOG_LEVEL=debug
+    restart: unless-stopped
+
+  symbiota-db:
+    build:
+      context: ./mysqlContainer
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    container_name: symbiota-db-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-symbiota}
+      MYSQL_USER: ${MYSQL_USER:-symbiota-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-symbiota-pass}
+    ports:
+      - "${MYSQL_PORT:-33060}:3306"
+    volumes:
+      # Persistent database storage (use bind mount if data on separate filesystem)
+      - ${MYSQL_DATA_DIR:-mysql-data}:/var/lib/mysql${SELINUX_FLAG}
+      # Optional: Mount schema files for import
+      - ${SCHEMA_SOURCE:-./schema}:/source${SELINUX_FLAG}
+    networks:
+      - symbiota-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  symbiota-network:
+    driver: bridge
