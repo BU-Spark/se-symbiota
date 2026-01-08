@@ -15,16 +15,16 @@ version: '3.8'
 
 services:
   symbiota:
-    # Option 1: Pull from Quay.io (production)
-    image: ${QUAY_REGISTRY:-quay.io/bu-spark/symbiota}:${IMAGE_TAG:-alpha}
+    # Build from source (recommended for community deployments)
+    build:
+      context: ../..  # Repository root (two dirs up from containers/)
+      dockerfile: containers/ubuntuContainer/Dockerfile.prod
+      platforms:
+        - linux/amd64
+        - linux/arm64
 
-    # Option 2: Build locally (testing before Quay setup)
-    # build:
-    #   context: ../..  # Repository root (two dirs up from containers/)
-    #   dockerfile: containers/ubuntuContainer/Dockerfile.prod
-    #   platforms:
-    #     - linux/amd64
-    #     - linux/arm64
+    # Alternative: Use a pre-built image registry (not officially supported)
+    # image: your-registry.example.com/symbiota:tag
 
     container_name: symbiota-web
     ports:
