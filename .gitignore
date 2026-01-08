@@ -1,3 +1,0 @@
-# Container environment files
-containers/.env
-containers/.docker-compose.*.tmp.yaml
