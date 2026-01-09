@@ -63,6 +63,20 @@ for file in "${CRITICAL_FILES[@]}"; do
 done
 echo ""
 
+echo "Loading environment variables..."
+# Source .env file if mounted in config overlay
+# This allows deployer to place .env anywhere and mount it here
+ENV_FILE="$CONFIG_OVERLAY_DIR/.env"
+if [ -f "$ENV_FILE" ]; then
+    echo "  ✓ Loading environment from $ENV_FILE"
+    set -a  # Export all variables
+    source "$ENV_FILE"
+    set +a
+else
+    echo "  ℹ No .env file found in config overlay (optional)"
+fi
+echo ""
+
 echo "Configuring Apache logging to stdout..."
 # Redirect Apache error log to stdout so podman logs can capture it
 ln -sf /proc/self/fd/1 /var/log/apache2/error.log
