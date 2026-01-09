@@ -90,8 +90,8 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
+    # No external ports exposed in production - only accessible via internal network
+    # Symbiota accesses database at: symbiota-db:3306
 
     volumes:
       # Persistent database storage on /mnt/symbiota/data

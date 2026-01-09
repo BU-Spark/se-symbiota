@@ -105,9 +105,17 @@ MYSQL_DATABASE=symbiota
 MYSQL_USER=symbiota_user
 MYSQL_PASSWORD=secure_password
 
-# Ports
-HTTP_PORT=8080              # Web interface port
-MYSQL_PORT=33060            # Database port
+# Ports (HOST:CONTAINER mapping)
+# Format: "HOST_PORT:CONTAINER_PORT"
+# - Left side: External port on your host machine (set in .env)
+# - Right side: Internal port inside container (hardcoded in compose file)
+#
+# Development: All services exposed for debugging
+HTTP_PORT=8080              # Web interface - host port for http://localhost:8080
+MYSQL_PORT=33060            # Database - host port for MySQL client connections
+OCR_PORT=8081               # OCR service - host port for testing endpoints
+#
+# Production: Only HTTP_PORT exposed; MySQL/OCR internal-only for security
 
 # MySQL Data Storage
 MYSQL_DATA_DIR=mysql-data   # Default: Docker volume
