@@ -63,6 +63,11 @@ for file in "${CRITICAL_FILES[@]}"; do
 done
 echo ""
 
+echo "Configuring Apache logging to stdout..."
+# Redirect Apache error log to stdout so podman logs can capture it
+ln -sf /proc/self/fd/1 /var/log/apache2/error.log
+ln -sf /proc/self/fd/1 /var/log/apache2/access.log
+
 echo "Starting Apache..."
 echo "========================================="
 echo ""
