@@ -40,9 +40,9 @@ services:
       - ${DATA_DIR:-/mnt/symbiota/data}/logs:/var/www/html/symbiota/content/logs:z
 
       # Mount .env file for environment variable sourcing
-      # Deployer can place .env anywhere and reference it via ENV_FILE path
-      # Entrypoint will source it to make vars available to PHP getenv()
-      - ${ENV_FILE:-./.env}:/config-overlay/.env:ro,z
+      # Default expects .env to live in containers/ (run compose from repo root or containers/)
+      # Deployer can override via ENV_FILE
+      - ${ENV_FILE:-./containers/.env}:/config-overlay/.env:ro,z
 
       # Mount entire config overlay at runtime (keep secrets out of image)
       # Entrypoint script will copy these files over the generic code

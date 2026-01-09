@@ -20,7 +20,7 @@ services:
       # Bind mount code for live editing
       - ${PROJECT_ROOT:-./../..}:/var/www/html/symbiota${SELINUX_FLAG}
       # Config overlay (optional, sourced by entrypoint if .env present)
-      - ${CONFIG_OVERLAY_DIR:-.}/.env:/config-overlay/.env:ro${SELINUX_FLAG}
+      - ${CONFIG_OVERLAY_DIR:-./containers}/.env:/config-overlay/.env:ro${SELINUX_FLAG}
       # Separate data directories (on different filesystem for large datasets)
       # Uncomment these if using bootstrap-symbiota.sh or separate storage
       # - ${CONTENT_DIR}:/var/www/html/symbiota/content${SELINUX_FLAG}
