@@ -20,13 +20,14 @@ if [ -d "$CONFIG_OVERLAY_DIR" ] && [ "$(ls -A $CONFIG_OVERLAY_DIR)" ]; then
     echo "Overlaying configuration onto $SYMBIOTA_DIR..."
 
     # Copy config overlay, preserving structure and overwriting existing files
+    # Exclude .git directory to reduce noise and improve performance
     # This overlays:
     #   - config/dbconnection.php (database credentials)
     #   - config/symbini.php (main config)
     #   - content/* (site content and skin)
     #   - includes/* (custom headers)
     #   - header.php, footer.php, leftmenu.php, index.php (root customizations)
-    cp -rf "$CONFIG_OVERLAY_DIR"/* "$SYMBIOTA_DIR/"
+    cp -rf --exclude=.git "$CONFIG_OVERLAY_DIR"/* "$SYMBIOTA_DIR/"
 
     # Ensure proper ownership
     chown -R www-data:www-data "$SYMBIOTA_DIR"
@@ -34,7 +35,7 @@ if [ -d "$CONFIG_OVERLAY_DIR" ] && [ "$(ls -A $CONFIG_OVERLAY_DIR)" ]; then
     echo "Configuration overlay complete"
     echo ""
     echo "Files overlaid:"
-    find "$CONFIG_OVERLAY_DIR" -type f | sed "s|$CONFIG_OVERLAY_DIR|  -|"
+    find "$CONFIG_OVERLAY_DIR" -type f ! -path '*/.git/*' | sed "s|$CONFIG_OVERLAY_DIR|  -|"
     echo ""
 else
     echo "WARNING: No config overlay found at $CONFIG_OVERLAY_DIR"
