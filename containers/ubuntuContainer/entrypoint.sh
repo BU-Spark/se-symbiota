@@ -27,7 +27,7 @@ if [ -d "$CONFIG_OVERLAY_DIR" ] && [ "$(ls -A $CONFIG_OVERLAY_DIR)" ]; then
     #   - content/* (site content and skin)
     #   - includes/* (custom headers)
     #   - header.php, footer.php, leftmenu.php, index.php (root customizations)
-    cp -rf --exclude=.git "$CONFIG_OVERLAY_DIR"/* "$SYMBIOTA_DIR/"
+    rsync -a --exclude='.git' "$CONFIG_OVERLAY_DIR"/ "$SYMBIOTA_DIR/"
 
     # Ensure proper ownership
     chown -R www-data:www-data "$SYMBIOTA_DIR"
