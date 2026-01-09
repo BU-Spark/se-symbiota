@@ -22,7 +22,7 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install Apache, PHP, and system utilities
+# Install Apache, PHP, system utilities, and PHP extensions in single layer
 RUN apt-get update && apt-get install -y \
     bash \
     apache2 \
@@ -33,11 +33,6 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
     tesseract-ocr \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install PHP extensions required by Symbiota
-RUN apt-get update && apt-get install -y \
     php-mysqli \
     php-gd \
     php-mbstring \
@@ -49,17 +44,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable required Apache modules
-RUN a2enmod php8.1 && \
-    a2enmod rewrite && \
-    a2enmod headers
-
 # Copy Apache site configuration
 COPY containers/ubuntuContainer/002-symbiota.conf /etc/apache2/sites-available/002-symbiota.conf
-
-# Enable Symbiota site and disable default
-RUN a2dissite 000-default.conf && \
-    a2ensite 002-symbiota.conf
 
 # Set Apache environment variables
 ENV APACHE_RUN_DIR=/var/run/apache2 \
@@ -69,8 +55,11 @@ ENV APACHE_RUN_DIR=/var/run/apache2 \
     APACHE_RUN_GROUP=www-data \
     APACHE_PID_FILE=/var/run/apache2/apache2.pid
 
-# Create required directories
-RUN mkdir -p $APACHE_RUN_DIR $APACHE_LOCK_DIR $APACHE_LOG_DIR
+# Configure Apache: create directories, enable modules and site
+RUN mkdir -p $APACHE_RUN_DIR $APACHE_LOCK_DIR $APACHE_LOG_DIR && \
+    a2enmod php8.1 rewrite headers && \
+    a2dissite 000-default.conf && \
+    a2ensite 002-symbiota.conf
 
 # Set working directory
 WORKDIR /var/www/html/symbiota
@@ -80,28 +69,23 @@ WORKDIR /var/www/html/symbiota
 # Build context is repository root (../..)
 COPY --chown=www-data:www-data . /var/www/html/symbiota/
 
-# Create runtime directories with proper permissions
-# These will be bind-mounted in production for persistent data
+# Copy entrypoint script for runtime config overlay
+COPY containers/ubuntuContainer/entrypoint.sh /entrypoint.sh
+
+# Create runtime directories and set all permissions in single layer
+# These directories will be bind-mounted in production for persistent data
 RUN mkdir -p /var/www/html/symbiota/temp \
              /var/www/html/symbiota/content/logs \
              /var/www/html/symbiota/content/imglib && \
-    chown -R www-data:www-data /var/www/html/symbiota/temp \
-                                /var/www/html/symbiota/content/logs \
-                                /var/www/html/symbiota/content/imglib
-
-# Set proper permissions on Symbiota directories
-RUN chown -R www-data:www-data /var/www/html/symbiota && \
+    chown -R www-data:www-data /var/www/html/symbiota && \
     chmod -R 755 /var/www/html/symbiota && \
     chmod -R 775 /var/www/html/symbiota/temp \
                  /var/www/html/symbiota/content/logs \
-                 /var/www/html/symbiota/content/imglib
+                 /var/www/html/symbiota/content/imglib && \
+    chmod +x /entrypoint.sh
 
 # Expose HTTP port
 EXPOSE 80
-
-# Copy entrypoint script for runtime config overlay
-COPY containers/ubuntuContainer/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
