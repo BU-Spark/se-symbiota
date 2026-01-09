@@ -19,7 +19,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Set working directory
 WORKDIR /home
 
-# Install Apache, PHP, and system utilities
+# Install Apache, PHP, and system utilities (rsync required for config overlay)
 RUN apt-get update && apt-get install -y \
     bash \
     apache2 \
@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     vim \
     unzip \
     curl \
+    rsync \
     tesseract-ocr \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
