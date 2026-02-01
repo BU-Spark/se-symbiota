@@ -64,7 +64,7 @@ if (isset($_REQUEST['batchid'])) {
    $currentImgId = $_REQUEST['imgid'];
    $currentImgIndex = $_REQUEST['imgindex'];
    $occData = array();
-   $ocrResults =  $occManager->getOCRResult($lastImgId);
+   // $ocrResults =  $occManager->getOCRResult($lastImgId);
    // occData is a hashtable, which has imgid as key, and occid as value
    foreach ($imgIDs as $imgID) {
      $occData[$imgID] = $occManager->getOneOccID($imgID);
@@ -559,7 +559,7 @@ if($SYMB_UID){
 	$imgidCollection = [];
 	$imgUrlCollection = [];
 	foreach ($imgArr as $item) {
-		$imgidCollection[] = $item['mediaId'];
+		// $imgidCollection[] = $item['mediaId'];
 		$imgUrlCollection[] = $item['web'];
 	}
 	$totalImage = count($imgidCollection);
