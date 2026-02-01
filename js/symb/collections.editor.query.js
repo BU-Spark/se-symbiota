@@ -159,6 +159,17 @@ function verifyQueryForm(f){
 	return true;
 }
 
+function toggleDetail(){
+	var btn = document.getElementById("detail-btn");
+	if (btn.value === "detailed") {
+		btn.value = "minimal";
+		btn.innerHTML = "Minimal";
+	} else {
+		btn.value = "detailed";
+		btn.innerHTML = "Detailed";
+	}
+}
+
 function submitQueryForm(qryIndex){
 	var f = document.queryform;
 	if(qryIndex == 'forward' || qryIndex == 'back'){

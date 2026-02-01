@@ -1183,6 +1183,51 @@ class OccurrenceEditorManager {
 		return $status;
 	}
 
+	public function saveOcrResult($imgId, $notes = null, $rawNotes = null, $rawSource = null) {
+		$status = '';
+		$imgId = filter_var($imgId, FILTER_SANITIZE_NUMBER_INT);
+		$notes = ($notes !== null) ? trim($notes) : null;
+		$rawNotes = ($rawNotes !== null) ? filter_var($rawNotes, FILTER_SANITIZE_STRING) : null;
+		$rawSource = ($rawSource !== null) ? filter_var($rawSource, FILTER_SANITIZE_STRING) : null;
+	
+		if ($imgId !== null) {
+	
+			if ($this->conn) {
+				$sql = "UPDATE images SET notes = ?, ocr_notes = ?, ocr_source = ? WHERE imgid = ?";
+				$stmt = $this->conn->prepare($sql);
+				if ($stmt) {
+					$stmt->bind_param("sssi", $notes, $rawNotes, $rawSource, $imgId);
+					if ($stmt->execute()) {
+						$status = $LANG['OCR_SAVED_SUCCESSFULLY'] ?? 'OCR results saved successfully.';
+					} else {
+						$status = $LANG['ERROR_SAVING_OCR'] ?? 'Error saving OCR results: ' . $stmt->error;
+						$this->errorArr[] = $status;
+					}
+					$stmt->close();
+				} else {
+					$status = $LANG['ERROR_PREPARING_STATEMENT'] ?? 'Error preparing statement: ' . $this->conn->error;
+					$this->errorArr[] = $status;
+				}
+			} else {
+				$status = $LANG['DATABASE_CONNECTION_ERROR'] ?? 'Error connecting to the database.';
+				$this->errorArr[] = $status;
+			}
+		} else {
+			$status = $LANG['MISSING_IMAGE_ID'] ?? 'Error: Missing image ID.';
+			$this->errorArr[] = $status;
+		}
+	
+		return $status;
+	}
+	
+
+	public function updateLastEdited($batchID, $currentImgId){
+		$query = "UPDATE batch SET last_edited = '$currentImgId' WHERE batchID = '$batchID'";
+		$success = $this->conn->query($query);
+
+		return $success;
+	}
+
 	private function getIdentifiers($occidStr) {
 		$retArr = array();
 		if ($occidStr) {
