@@ -23,9 +23,12 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 			<div style="float:left;;padding-right:10px;margin:2px 20px 0px 0px;"><?php echo $LANG['ROTATE']; ?>: <a href="#" onclick="rotateImage(-90)">&nbsp;L&nbsp;</a> &lt;&gt; <a href="#" onclick="rotateImage(90)">&nbsp;R&nbsp;</a></div>
 		</div>
 		<div id="labelprocessingdiv" style="clear:both;">
-			<?php $currentImageId = 0; ?>
+			<?php 
+			$currentImageId = 0; 
+			if(!isset($notesValue)) $notesValue = '';
+			?>
 			<div id="labeldiv-<?php echo $currentImageId; ?>">
-				<div>
+				<div> 
 					<img id="activeimg-<?php echo $currentImageId; ?>" src="<?php echo($imgUrlCollection[$currentImageId]) ?>" style="height:400px;" onload="initImageTool('activeimg-<?php echo $currentImageId; ?>')" />
 				</div>
 				<div style="width:100%; clear:both;">
@@ -43,19 +46,8 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 						Choose your OCR model
 					</h4>
 					<fieldset class="" style="text-align:left; margin-bottom:15px">
-						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-							<div>
-								<label for="ocr-method">Select OCR Method:</label>
-								<select name="ocr-method" id="ocr-method">
-									<?php
-										$default = "tesseract";
-										foreach ($availalbe_OCR as $key => $label) {
-											$selected = ($key === $default) ? "selected" : "";
-											echo "<option value=\"$key\" $selected>$label</option>\n";
-										}
-									?>
-								</select>
-							</div>
+						<div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+							<!-- Select OCR Model Dropdown here -->
 							<div>
 								<label>
 									<input type="checkbox" id="ocr-full" value="1" />
@@ -83,7 +75,6 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 				</div>
 				<div style="width:100%;clear:both;">
 					<div id="QEtfadddiv-<?php echo $currentImageId; ?>" style="">
-						<!-- save TODO: need to update this correctly -->
 						<form id="ocrform" name="ocrform" action="occurrencequickentry.php" method="post" onsubmit="return verifyFullForm(this);">
 							<div>
 								<textarea id="rawtext" name="rawtext" rows="12" cols="48" style="width:97%;background-color:#F8F8F8;"><?php echo $notesValue; ?></textarea>

@@ -85,6 +85,7 @@ $(document).ready(function () {
     },
   });
 
+  // For quick entry form
   $("#ffcurrname").autocomplete({
 		source: "/collections/quickentry/rpc/getcurrnamesuggest.php",
 		minLength: 3, 

@@ -2483,26 +2483,26 @@ class OccurrenceEditorManager {
 	public function getImageInfo($imgId = 0){
 		$imageMap = Array();
 		if($this->occid){
-			$sql = 'SELECT imgid, url, sourceIdentifier, thumbnailurl, originalurl, caption, photographer, photographeruid, sourceurl, copyright, notes, occid, username, sortoccurrence, initialtimestamp FROM images ';
-			if($imgId) $sql .= 'WHERE (imgid = '.$imgId.') ';
+			$sql = 'SELECT mediaID, url, sourceIdentifier, thumbnailurl, originalurl, caption, creator, creatorUid, sourceUrl, copyright, notes, occid, username, sortoccurrence, initialtimestamp FROM media ';
+			if($imgId) $sql .= 'WHERE (mediaID = '.$imgId.') ';
 			else $sql .= 'WHERE (occid = '.$this->occid.') ';
 			$sql .= 'ORDER BY sortoccurrence';
 			//echo $sql;
 			// NOTE: imgid is used for our current database, but the latest Symbiota is uisng mediaID.  
 			$result = $this->conn->query($sql);
 			while($row = $result->fetch_object()){
-				$imageMap[$row->imgid]['url'] = $row->sourceIdentifier;
-				$imageMap[$row->imgid]['tnurl'] = $row->thumbnailurl;
-				$imageMap[$row->imgid]['origurl'] = $row->originalurl;
-				$imageMap[$row->imgid]['caption'] = $this->cleanOutStr($row->caption);
-				$imageMap[$row->imgid]['photographer'] = $this->cleanOutStr($row->photographer);
-				$imageMap[$row->imgid]['photographeruid'] = $row->photographeruid;
-				$imageMap[$row->imgid]['sourceurl'] = $row->sourceurl;
-				$imageMap[$row->imgid]['copyright'] = $this->cleanOutStr($row->copyright);
-				$imageMap[$row->imgid]['notes'] = $this->cleanOutStr($row->notes);
-				$imageMap[$row->imgid]['occid'] = $row->occid;
-				$imageMap[$row->imgid]['username'] = $this->cleanOutStr($row->username);
-				$imageMap[$row->imgid]['sort'] = $row->sortoccurrence;
+				$imageMap[$row->mediaID]['url'] = $row->sourceIdentifier;
+				$imageMap[$row->mediaID]['tnurl'] = $row->thumbnailurl;
+				$imageMap[$row->mediaID]['origurl'] = $row->originalurl;
+				$imageMap[$row->mediaID]['caption'] = $this->cleanOutStr($row->caption);
+				$imageMap[$row->mediaID]['creator'] = $this->cleanOutStr($row->creator);
+				$imageMap[$row->mediaID]['creatorUid'] = $row->creatorUid;
+				$imageMap[$row->mediaID]['sourceUrl'] = $row->sourceUrl;
+				$imageMap[$row->mediaID]['copyright'] = $this->cleanOutStr($row->copyright);
+				$imageMap[$row->mediaID]['notes'] = $this->cleanOutStr($row->notes);
+				$imageMap[$row->mediaID]['occid'] = $row->occid;
+				$imageMap[$row->mediaID]['username'] = $this->cleanOutStr($row->username);
+				$imageMap[$row->mediaID]['sort'] = $row->sortoccurrence;
 			}
 			$result->free();
 		}
@@ -2511,7 +2511,7 @@ class OccurrenceEditorManager {
 
 	protected function getImageTags($imgIdStr) {
 		$retArr = array();
-		$sql = 'SELECT t.mediaID, k.tagkey, k.shortlabel, k.description_en FROM imagetag t INNER JOIN imagetagkey k ON t.keyvalue = k.tagkey WHERE t.mediaID IN(' . $imgIdStr . ')';
+		$sql = 'SELECT t.mediaID, k.tagkey, k.shortlabel, k.description_en FROM imagetag t INNER JOIN imagetagkey k ON t.keyValue = k.tagkey WHERE t.mediaID IN(' . $imgIdStr . ')';
 		$rs = $this->conn->query($sql);
 		while ($r = $rs->fetch_object()) {
 			$retArr[$r->mediaID][$r->tagkey] = $r->shortlabel;
@@ -2833,19 +2833,19 @@ class OccurrenceEditorManager {
 	}
 	
 	// For quick entry form
-	public function getImgIDs($batchID) {
+	public function getImgIDs() {
 		$imgIDs = array();
-		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
+		$query = "SELECT mediaId FROM media";
 		$result = $this->conn->query($query);
 		while ($row = $result->fetch_assoc()) {
-			$imgIDs[] = $row['imgid'];
+			$imgIDs[] = $row['mediaId'];
 		}
 		$result->free();
 		return $imgIDs;
 	}
 	
 	public function getBarcode($imgID) {
-		$query = "SELECT barcode FROM images_barcode WHERE imgid = '$imgID' LIMIT 1";
+		$query = "SELECT barcode FROM images_barcode WHERE mediaId = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 		if ($result && $row = $result->fetch_assoc()) {
 			$barcode = $row['barcode'];
@@ -2857,23 +2857,9 @@ class OccurrenceEditorManager {
 		return $barcode;
 	}
 
-	// we use the notes column to store the OCR results temporarily. You should update this to the right column afterwards
-	public function getOCRResult($imgID) {
-		$query = "SELECT notes FROM images WHERE imgid = '$imgID' LIMIT 1";
-		$result = $this->conn->query($query);
-		if ($result && $row = $result->fetch_assoc()) {
-			$notes = $row['notes'];
-		} else {
-			$notes = null; 
-		}
-		
-		$result->free();
-		return $notes;
-	}
-
 	public function getOneOccID($imgId) {
 		$occid = false;
-		$query = "SELECT occid FROM images WHERE imgid = '$imgId' LIMIT 1";
+		$query = "SELECT occid FROM media WHERE mediaId = '$imgId' LIMIT 1";
 		$result = $this->conn->query($query);
 
 		if ($result && $row = $result->fetch_assoc()) {
