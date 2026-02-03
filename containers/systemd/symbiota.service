@@ -1,0 +1,25 @@
+[Unit]
+Description=Symbiota Web Application
+Documentation=https://github.com/BU-Spark/se-symbiota
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/symbiota/containers
+EnvironmentFile=/opt/symbiota/containers/.env
+
+# Start containers
+ExecStart=/usr/bin/docker-compose -f docker-compose.prod.yaml up -d
+
+# Stop containers
+ExecStop=/usr/bin/docker-compose -f docker-compose.prod.yaml down
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

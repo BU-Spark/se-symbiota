@@ -1,0 +1,60 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README*
+LICENSE*
+CHANGELOG*
+docs/
+documentation/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Container development files
+containers/docker-compose.dev.yaml
+containers/.env
+containers/.env.example
+containers/scripts/
+containers/systemd/
+docker/
+.dockerignore
+
+# Runtime data directories (will be mounted at runtime)
+temp/*
+content/logs/*
+content/imglib/*
+content/dwca/*
+!temp/.gitkeep
+!content/logs/.gitkeep
+!content/imglib/.gitkeep
+
+# Node modules (if any)
+node_modules/
+
+# Local development files
+*.local
+.env
+.env.*
+
+# Test files
+test/
+tests/
+*.test.php
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Archive directories
+archive/
+backups/

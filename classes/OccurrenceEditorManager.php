@@ -2553,7 +2553,7 @@ class OccurrenceEditorManager {
 
 	protected function getImageTags($imgIdStr) {
 		$retArr = array();
-		$sql = 'SELECT t.mediaID, k.tagkey, k.shortlabel, k.description_en FROM imagetag t INNER JOIN imagetagkey k ON t.keyvalue = k.tagkey WHERE t.mediaID IN(' . $imgIdStr . ')';
+		$sql = 'SELECT t.mediaID, k.tagkey, k.shortlabel, k.description_en FROM imagetag t INNER JOIN imagetagkey k ON t.keyValue = k.tagkey WHERE t.mediaID IN(' . $imgIdStr . ')';
 		$rs = $this->conn->query($sql);
 		while ($r = $rs->fetch_object()) {
 			$retArr[$r->mediaID][$r->tagkey] = $r->shortlabel;

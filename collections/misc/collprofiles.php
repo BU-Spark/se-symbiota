@@ -5,6 +5,7 @@ else include_once($SERVER_ROOT . '/content/lang/collections/misc/collprofiles.en
 include_once($SERVER_ROOT . '/classes/OccurrenceCollectionProfile.php');
 include_once($SERVER_ROOT . '/classes/OccurrenceEditorManager.php');
 include_once($SERVER_ROOT . '/classes/utilities/GeneralUtil.php');
+include_once($SERVER_ROOT.'/classes/OccurrenceEditorDeterminations.php');
 
 header('Content-Type: text/html; charset=' . $CHARSET);
 unset($_SESSION['editorquery']);
@@ -32,7 +33,23 @@ if ($SYMB_UID) {
 		elseif (array_key_exists('CollEditor', $USER_RIGHTS) && in_array($collid, $USER_RIGHTS['CollEditor'])) $editCode = 1;
 	}
 }
+
+// For quick entry form 
+$occManager = new OccurrenceEditorDeterminations();
+
+// get image ids from the images table
+$imgIDs = $occManager->getImgIDs();
+$firstImgId = $imgIDs[0];
+$firstBarcode = $occManager->getBarcode($firstImgId);
+$firstIndex = 0;
+$lastImgId = end($imgIDs);
+$lastBarcode = $occManager->getBarcode($lastImgId);
+$lastIndex = count($imgIDs) - 1;
+$imgNum = count($imgIDs);
+$occData = array();
+$barcode = $occManager->getBarcode($firstIndex);
 ?>
+
 <!DOCTYPE html>
 <html lang="<?php echo $LANG_TAG ?>">
 <head>
