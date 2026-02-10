@@ -377,10 +377,10 @@ $barcode = $occManager->getBarcode($firstIndex);
 									<?= $LANG['EDIT_EXISTING'] ?>
 								</a>
 							</li>
-							<!-- add the link to quick entry form -->
+							<!-- add a bullet point to link to the image batch -->
 							<li>
-								<a href="../quickentry/occurrencequickentry.php?csmode=0&collid=<?= $collid ?>&&imgid=<?= $firstImgId ?>&imgindex=1&barcode=0&occid=5639&occindex=1">
-									<?= $LANG['QUICK_ENTRY_FORM'] ?>
+								<a href="../quickentry/transcribe.php?collid=<?php echo $collid;?>">
+									<?php echo (isset($LANG['IMAGE_BATCH']) ? $LANG['IMAGE_BATCH'] : 'Image Transcription Quick Entry'); ?>
 								</a>
 							</li>
 							<li>
