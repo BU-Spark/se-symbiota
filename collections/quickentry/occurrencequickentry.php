@@ -132,7 +132,6 @@ if (isset($_REQUEST['batchid'])) {
 	$firstOccId = $occData[$firstImgId];
 	$lastOccId = $occData[$lastImgId];
 	$barcode = $occManager->getBarcode($currentImgId);
-} 
 
 //Sanitation
 if(!is_numeric($occId)) $occId = '';
