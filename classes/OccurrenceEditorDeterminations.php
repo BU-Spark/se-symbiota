@@ -20,7 +20,7 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 
 	public function getImgIndex($imgID) {
 		$imgIndex = false;
-		$query = "SELECT ordinal FROM batch_XREF WHERE imgid = '$imgID' LIMIT 1";
+		$query = "SELECT ordinal FROM batch_XREF WHERE mediaID = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 
 		if ($result && $row = $result->fetch_assoc()) {
@@ -55,6 +55,24 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
         return $batchValues;
 	}
 
+	public function getBatchRec($batchID, $ordinal) {
+		$batchArr = array();
+		// NEW QUERY: Joins 'media' table and aliases mediaID as imgid for compatibility
+		$query = "SELECT b.mediaID as imgid, b.ordinal, o.collid, o.occid, o.catalogNumber 
+				FROM batch_XREF b 
+				INNER JOIN media m ON b.mediaID = m.mediaID 
+				INNER JOIN omoccurrences o ON m.occid = o.occid 
+				WHERE b.batchID = '$batchID' AND b.ordinal = '$ordinal'";
+
+		$result = $this->conn->query($query);
+		if ($result && $row = $result->fetch_assoc()) {
+			$batchArr = $row;
+		}
+		$result->free();
+
+		return $batchArr;
+	}
+
 	public function getBatchName($batchID) {
 		$nameValues = array();
 		$query = "SELECT batch_name FROM batch WHERE batchID = '$batchID'";
@@ -66,9 +84,9 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 		return $nameValues;
 	}
 
-	public function getImgIDs($batchID) {
+	public function getImgIDs($batchID = null) {
 		$imgIDs = array();
-		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
+		$query = "SELECT mediaID as imgid FROM batch_XREF WHERE batchID = '$batchID'";
 		$result = $this->conn->query($query);
 		while ($row = $result->fetch_assoc()) {
 			$imgIDs[] = $row['imgid'];
@@ -79,7 +97,7 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 
 	public function getOneOccID($imgID) {
 		$occid = false;
-		$query = "SELECT occid FROM images WHERE imgid = '$imgID' LIMIT 1";
+		$query = "SELECT occid FROM media WHERE mediaID = '$imgID' LIMIT 1";
 		$result = $this->conn->query($query);
 
 		if ($result && $row = $result->fetch_assoc()) {

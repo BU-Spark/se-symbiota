@@ -112,6 +112,26 @@ if (isset($_REQUEST['batchid'])) {
      $barcode = $occManager->getBarcode($currentImgId);
    }
 }
+    $batchId = $_REQUEST['batchid'];
+    // Use $batchId as needed
+	$imgIDs = $occManager->getImgIDs($batchId);
+	$firstImgId = $imgIDs[0];
+	$firstBarcode = $occManager->getBarcode($firstImgId);
+	$firstIndex = 0;
+	$lastImgId = end($imgIDs);
+	$lastBarcode = $occManager->getBarcode($lastImgId);
+	$lastIndex = count($imgIDs) - 1;
+	$imgNum = count($imgIDs);
+	$currentImgId = $_REQUEST['imgid'];
+	$currentImgIndex = $_REQUEST['imgindex'];
+	$occData = array();
+	// occData is a hashtable, which has imgid as key, and occid as value
+	foreach ($imgIDs as $imgID) {
+        $occData[$imgID] = $occManager->getOneOccID($imgID);
+    }
+	$firstOccId = $occData[$firstImgId];
+	$lastOccId = $occData[$lastImgId];
+	$barcode = $occManager->getBarcode($currentImgId);
 
 //Sanitation
 if(!is_numeric($occId)) $occId = '';

@@ -14,8 +14,9 @@ $goToMode = array_key_exists('gotomode', $_REQUEST) ? filter_var($_REQUEST['goto
 $occManager = new OccurrenceEditorDeterminations();
 $occManager->setCollId($collid);
 $collMap = $occManager->getCollMap();
-$collid = $_REQUEST['collid'];
+$collid = array_key_exists('collid', $_REQUEST) ? (int)$_REQUEST['collid'] : 0;
 $qryCnt = $occManager->getQueryRecordCount();
+$tabTarget = 0;
 
 if($collMap){
 	if($collMap['colltype']=='General Observations'){
@@ -48,30 +49,81 @@ elseif(array_key_exists("CollEditor",$USER_RIGHTS) && in_array($collid,$USER_RIG
 }
 $statusStr = '';
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-	if (isset($_POST["batchID"])) {
-		$selectedBatchID = $_POST["batchID"];
-		$imgIDs = $occManager->getImgIDs($selectedBatchID);
-	} else {
-		$imgIDs = $occManager->getAllImgIDs();		
-	}
-	$firstImgId = $imgIDs[0];
-	$firstBarcode = !empty($occManager->getBarcode($firstImgId)) ? ($occManager->getBarcode($firstImgId)) : 0;
+// -----------------------------
+// Batch selection + navigation defaults
+// -----------------------------
+$selectedBatchID = 0;
+if(isset($_REQUEST['batchID']) && $_REQUEST['batchID'] !== ''){
+	$selectedBatchID = (int)$_REQUEST['batchID'];
+}
+elseif(isset($_REQUEST['batchid']) && $_REQUEST['batchid'] !== ''){
+	// occurrencequickentry.php uses batchid (lowercase d)
+	$selectedBatchID = (int)$_REQUEST['batchid'];
+}
+
+$imgIDs = array();
+if($selectedBatchID > 0){
+	$tmp = $occManager->getImgIDs($selectedBatchID);
+	if(is_array($tmp)) $imgIDs = $tmp;
+}
+
+echo "<pre>";
+echo "collid = $collid\n";
+echo "selectedBatchID = $selectedBatchID\n";
+echo "getImgIDs returned:\n";
+var_dump($tmp);
+echo "</pre>";
+// exit;
+
+// Initialize all vars used by the UI so we never emit undefined-variable warnings
+$firstImgId = 0;
+$firstIndex = 0;
+$firstBarcode = 0;
+$firstOccId = 0;
+
+$lastImgId = 0;
+$lastIndex = 0;
+$lastBarcode = 0;
+$lastOccId = 0;
+
+$lastEditIndex = 0;
+$lastEditImgId = 0;
+$lastEditBarcode = 0;
+$lastEditOccId = 0;
+
+$occData = array();
+$hasBatch = false;
+
+if(!empty($imgIDs)){
+	$hasBatch = true;
 	$firstIndex = 0;
-	$lastImgId = end($imgIDs);
-	$lastBarcode = !empty($occManager->getBarcode($lastBarcode)) ? ($occManager->getBarcode($lastBarcode)) : 0;
+	$firstImgId = (int)$imgIDs[0];
+	$firstBarcode = (int)($occManager->getBarcode($firstImgId) ?: 0);
+
 	$lastIndex = count($imgIDs) - 1;
-	$occData = array();
-	$lastEditImgId = $occManager->getlastEdit($selectedBatchID);
-	$lastEditBarcode = !empty($occManager->getBarcode($lastEditImgId)) ? ($occManager->getBarcode($lastEditImgId)) : 0;
-	$lastEditIndex = $occManager->getImgIndex($lastEditImgId) - 1;
-	// occData is a hashtable, which has imgid as key, and occid as value
+	$lastImgId = (int)$imgIDs[$lastIndex];
+	$lastBarcode = (int)($occManager->getBarcode($lastImgId) ?: 0);
+
 	foreach ($imgIDs as $imgID) {
-        $occData[$imgID] = $occManager->getOneOccID($imgID);
-    }
-	$firstOccId = !empty($occData[$firstImgId]) ? ($occData[$firstImgId]) : 0;
-	$lastOccId = !empty($occData[$lastImgId]) ? ($occData[$lastImgId]) : 0;
-	$lastEditOccId = !empty($occData[$lastEditImgId]) ? ($occData[$lastEditImgId]) : 0;
+		$occData[$imgID] = $occManager->getOneOccID($imgID);
+	}
+
+	$firstOccId = (int)($occData[$firstImgId] ?? 0);
+	$lastOccId = (int)($occData[$lastImgId] ?? 0);
+
+	// Last edit is only meaningful within a batch context
+	$lastEditIndex = (int)($occManager->getlastEdit($selectedBatchID) ?: 0);
+	if($lastEditIndex > 0){
+		$lastEditArr = $occManager->getBatchRec($selectedBatchID, $lastEditIndex);
+		if($lastEditArr){
+			$lastEditImgId = (int)($lastEditArr['imgid'] ?? 0);
+			$lastEditBarcode = (int)($lastEditArr['catalogNumber'] ?? 0);
+			$lastEditOccId = (int)($lastEditArr['occid'] ?? 0);
+		}
+	}
+	if($lastEditImgId){
+		$lastEditOccId = (int)($occData[$lastEditImgId] ?? $lastEditOccId);
+	}
 }
 
 ?>
@@ -128,11 +180,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <!-- TODO: update the submit function of the form -->
 						<form name="batchform" method="post">
 							<div style="margin-bottom:15px; align-items: center;">
-								<h4 style="margin-right: 15px;">Work On batch: <?php echo($selectedBatchID) ?></h4>
+								<h4 style="margin-right: 15px;">Work On batch: <?php echo ($selectedBatchID > 0 ? htmlspecialchars((string)$selectedBatchID, ENT_QUOTES) : 'None Selected'); ?></h4>
 								<div style="display: flex; flex-grow: 1;">
-									<button type="button" name="first" style="flex-grow: 0.5; margin-right: 5px;" onclick="return navigateToRecordNew(<?php echo ($crowdSourceMode).', '.($goToMode).', '.($collid).', '.($selectedBatchID).', '.($firstImgId).', '.($firstIndex).', '.($firstBarcode).', '.($firstOccId).', '.($firstIndex) ; ?>)"><?php echo $LANG['START_FROM']; ?> first.</button>
-									<button type="button" name="last" style="flex-grow: 0.5; margin-right: 5px;" onclick="return navigateToRecordNew(<?php echo ($crowdSourceMode).', '.($goToMode).', '.($collid).', '.($selectedBatchID).', '.($lastImgId).', '.($lastIndex).', '.($lastBarcode).', '.($lastOccId).', '.($lastIndex); ?>)"><?php echo $LANG['START_FROM']; ?> last.</button>
-									<button type="button" name="lastView" style="flex-grow: 0.5;" onclick="return navigateToRecordNew(<?php echo ($crowdSourceMode).', '.($goToMode).', '.($collid).', '.($selectedBatchID).', '.($lastEditImgId).', '.($lastEditIndex).', '.($lastEditBarcode).', '.($lastEditOccId).', '.($lastEditIndex); ?>)"><?php echo $LANG['START_FROM']; ?> last edit.</button>
+									<button type="button" <?php echo (!$hasBatch ? "disabled" : ""); ?> name="first" style="flex-grow: 0.5; margin-right: 5px;" onclick="return navigateToRecordNew(<?php echo ($crowdSourceMode).', '.($goToMode).', '.($collid).', '.($selectedBatchID).', '.($firstImgId).', '.($firstIndex).', '.($firstBarcode).', '.($firstOccId).', '.($firstIndex) ; ?>)"><?php echo $LANG['START_FROM']; ?> first.</button>
+									<button type="button" <?php echo (!$hasBatch ? "disabled" : ""); ?> name="last" style="flex-grow: 0.5; margin-right: 5px;" onclick="return navigateToRecordNew(<?php echo ($crowdSourceMode).', '.($goToMode).', '.($collid).', '.($selectedBatchID).', '.($lastImgId).', '.($lastIndex).', '.($lastBarcode).', '.($lastOccId).', '.($lastIndex); ?>)"><?php echo $LANG['START_FROM']; ?> last.</button>
+									<button type="button" <?php echo (!$hasBatch ? "disabled" : ""); ?> name="lastView" style="flex-grow: 0.5;" onclick="return navigateToRecordNew(<?php echo ($crowdSourceMode).', '.($goToMode).', '.($collid).', '.($selectedBatchID).', '.($lastEditImgId).', '.($lastEditIndex).', '.($lastEditBarcode).', '.($lastEditOccId).', '.($lastEditIndex); ?>)"><?php echo $LANG['START_FROM']; ?> last edit.</button>
 								</div>
 							</div>
 							<div>
@@ -142,7 +194,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 									<?php
 									foreach ($batchIds as $batchID) {
 										$batch_name = current($occManager->getbatchName($batchID));
-										echo "<option value=\"$batchID\">$batch_name</option>";
+										$selected = ($batchID == $selectedBatchID) ? " selected" : "";
+										echo "<option value=\"$batchID\"$selected>$batch_name</option>";
 									}
 									?>
 								</select>
