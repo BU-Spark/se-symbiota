@@ -1,5 +1,5 @@
 # Use the official MySQL 5.7 image
-FROM docker.io/library/mysql:5.7.44
+FROM docker.io/library/mysql:5.7
 
 # RUN sed -i -e "s//innodb_file_format = Barracuda/g" /etc/mysql/my.cnf
 # RUN echo innodb_file_format = Barracuda >> /etc/my.cnf

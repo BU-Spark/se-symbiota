@@ -77,10 +77,10 @@ ARG CONFIG_DIR
 # If CONFIG_DIR is set, copy config files into image
 # Usage: docker build --build-arg CONFIG_DIR=/path/to/config .
 RUN if [ -n "$CONFIG_DIR" ] && [ -d "$CONFIG_DIR" ]; then \
-        echo "Baking config from $CONFIG_DIR into image..."; \
-        cp -r "$CONFIG_DIR"/* /var/www/html/symbiota/; \
+    echo "Baking config from $CONFIG_DIR into image..."; \
+    cp -r "$CONFIG_DIR"/* /var/www/html/symbiota/; \
     else \
-        echo "No config directory specified, skipping config bake-in"; \
+    echo "No config directory specified, skipping config bake-in"; \
     fi
 
 # Health check
@@ -88,4 +88,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
 # Start Apache in foreground
-ENTRYPOINT ["apache2-ctl", "-D", "FOREGROUND"]
+ENTRYPOINT ["apache2ctl", "-D", "FOREGROUND"]

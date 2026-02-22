@@ -173,7 +173,7 @@ create_env_file() {
     log_info "Creating .env configuration file..."
 
     # Determine default paths relative to containers directory
-    local default_project_root="../.."
+    local default_project_root=".."
     local default_config_dir="../../config"
     local default_schema_source="../../config/schema"
 

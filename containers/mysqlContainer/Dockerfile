@@ -1,9 +1,9 @@
 # Symbiota MySQL Database Container
 #
-# Uses MySQL 5.7 for compatibility with Symbiota requirements
+# Uses MySQL 8.0 for ARM64 + AMD64 compatibility
 # Multi-architecture support (AMD64 + ARM64)
 
-FROM mysql:5.7.44
+FROM mysql:8.0.42
 
 # Build arguments for multi-arch support
 ARG TARGETPLATFORM

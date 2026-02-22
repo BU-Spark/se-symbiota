@@ -15,6 +15,7 @@ This directory contains Docker/Podman container configurations for running Symbi
 **WARNING: This is experimental and has not been fully tested. Use at your own risk.**
 
 The `scripts/bootstrap-symbiota.sh` script provides a complete automated installation that:
+
 - Creates proper separation of code, config, and data
 - Initializes database with schema
 - Generates all configuration files
@@ -23,6 +24,7 @@ The `scripts/bootstrap-symbiota.sh` script provides a complete automated install
 **Status:** Work in progress. The script has been designed but requires real-world testing before production use.
 
 **To try it (at your own risk):**
+
 ```bash
 ./scripts/bootstrap-symbiota.sh --help
 # Read the help, then:
@@ -36,12 +38,14 @@ The `scripts/bootstrap-symbiota.sh` script provides a complete automated install
 ### Development Environment
 
 1. **Configure environment:**
+
    ```bash
    cp .env.example .env
    # Edit .env to set PROJECT_ROOT and other paths
    ```
 
 2. **Start containers:**
+
    ```bash
    make dev-up
    ```
@@ -51,6 +55,7 @@ The `scripts/bootstrap-symbiota.sh` script provides a complete automated install
    - Database: localhost:33060
 
 4. **View logs:**
+
    ```bash
    make logs
    ```
@@ -63,6 +68,7 @@ The `scripts/bootstrap-symbiota.sh` script provides a complete automated install
 ### Production Deployment (Ubuntu 20.04 Server)
 
 1. **Deploy code to server:**
+
    ```bash
    # On server
    sudo mkdir -p /opt/symbiota
@@ -70,6 +76,7 @@ The `scripts/bootstrap-symbiota.sh` script provides a complete automated install
    ```
 
 2. **Create .env file:**
+
    ```bash
    cd /opt/symbiota/containers
    cp .env.example .env
@@ -77,6 +84,7 @@ The `scripts/bootstrap-symbiota.sh` script provides a complete automated install
    ```
 
 3. **Install systemd service:**
+
    ```bash
    sudo cp systemd/symbiota.service /etc/systemd/system/
    sudo systemctl daemon-reload
@@ -96,7 +104,8 @@ The `scripts/bootstrap-symbiota.sh` script provides a complete automated install
 
 ```bash
 # Paths
-PROJECT_ROOT=../..           # Path to Symbiota code
+PROJECT_ROOT=..              # Path to Symbiota code (repo root from containers/)
+CONFIG_OVERLAY_DIR=.         # Directory containing .env mounted to /config-overlay/.env
 SCHEMA_SOURCE=../../schema   # Path to database schemas
 
 # MySQL
@@ -124,6 +133,7 @@ MYSQL_DATA_DIR=mysql-data   # Default: Docker volume
 
 **Using a separate filesystem for database:**
 If your database should be on a separate mounted filesystem:
+
 ```bash
 # In .env
 MYSQL_DATA_DIR=/mnt/data/mysql
@@ -138,6 +148,7 @@ sudo chown -R 999:999 /mnt/data/mysql  # MySQL container runs as UID 999
 Symbiota requires instance-specific config files (from `se-symbiota-private`). There are two approaches:
 
 **Option 1: Manual overlay (before starting containers)**
+
 ```bash
 # Development
 cp -r config/* worktrees/container-dev/
@@ -147,6 +158,7 @@ cp -r /path/to/config/* /opt/symbiota/
 ```
 
 **Option 2: Bake into production image (recommended for immutable deploys)**
+
 ```bash
 # Set CONFIG_DIR in .env
 CONFIG_DIR=/path/to/se-symbiota-private
@@ -160,6 +172,7 @@ If `CONFIG_DIR` is set, config files are copied into the image at build time.
 ## Database Setup
 
 1. **Import schema:**
+
    ```bash
    # Access database container
    make db-shell
@@ -169,6 +182,7 @@ If `CONFIG_DIR` is set, config files are copied into the image at build time.
    ```
 
 2. **Create Symbiota users:**
+
    ```sql
    CREATE USER 'symbiota-r'@'%' IDENTIFIED BY 'symbiota-r-pass';
    GRANT SELECT ON symbiota.* TO 'symbiota-r'@'%';
@@ -190,16 +204,19 @@ If `CONFIG_DIR` is set, config files are copied into the image at build time.
 Run `make help` to see all available commands.
 
 **Development:**
+
 - `make dev-up` - Start development environment
 - `make dev-down` - Stop development environment
 - `make dev-build` - Rebuild containers
 
 **Production:**
+
 - `make prod-up` - Start production environment
 - `make prod-down` - Stop production environment
 - `make prod-build` - Rebuild containers
 
 **Common:**
+
 - `make logs` - View container logs
 - `make shell` - Access web container shell
 - `make db-shell` - Access database shell
@@ -221,6 +238,7 @@ make dev-up COMPOSE=podman-compose
 ## Troubleshooting
 
 ### Containers won't start
+
 ```bash
 make status          # Check container status
 make logs            # View error messages
@@ -228,12 +246,15 @@ docker ps -a         # See all containers
 ```
 
 ### Permission errors (SELinux)
+
 The compose files include `:z` flags for SELinux compatibility on Fedora/RHEL systems.
 
 ### Port already in use
+
 Change `HTTP_PORT` and `MYSQL_PORT` in `.env`
 
 ### Database connection errors
+
 1. Check database is running: `make ps`
 2. Verify credentials in `.env` match Symbiota config files
 3. Check network: `docker network inspect symbiota-network`

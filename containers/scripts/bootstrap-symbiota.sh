@@ -467,14 +467,14 @@ update_configuration_files() {
     local symbini_file="$CONFIG_DIR/symbini.php"
     if [ -f "$symbini_file" ]; then
         # Update site name
-        sed -i "s/\$DEFAULT_TITLE = '.*'/\$DEFAULT_TITLE = '$SITE_NAME'/" "$symbini_file"
+        sed -i.bak "s#\(\$DEFAULT_TITLE[[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$SITE_NAME'#" "$symbini_file" && rm "${symbini_file}.bak"
 
         # Update domain/base URL
-        sed -i "s#\$DOMAIN = '.*'#\$DOMAIN = '$SITE_URL'#" "$symbini_file"
+        sed -i.bak "s#\(\$DOMAIN[[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$SITE_URL'#" "$symbini_file" && rm "${symbini_file}.bak"
 
         # Update timezone
-        sed -i "s#\$TIMEZONE = '.*'#\$TIMEZONE = '$TIMEZONE'#" "$symbini_file" || \
-        sed -i "s#date_default_timezone_set('.*')#date_default_timezone_set('$TIMEZONE')#" "$symbini_file"
+        sed -i.bak "s#\(\$TIMEZONE[[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$TIMEZONE'#" "$symbini_file" && rm -f "${symbini_file}.bak"
+        sed -i.bak "s#\(date_default_timezone_set(\)['\"][^'\"]*['\"]#\1'$TIMEZONE'#" "$symbini_file" && rm -f "${symbini_file}.bak"
 
         log_success "Updated symbini.php"
     else
@@ -484,14 +484,14 @@ update_configuration_files() {
     # Update dbconnection.php
     local dbconn_file="$CONFIG_DIR/dbconnection.php"
     if [ -f "$dbconn_file" ]; then
-        sed -i "s/\$GLOBALS\['readonly'\] = '.*'/\$GLOBALS['readonly'] = '$SYMBIOTA_READ_USER'/" "$dbconn_file"
-        sed -i "s/\$GLOBALS\['username'\] = '.*'/\$GLOBALS['username'] = '$SYMBIOTA_WRITE_USER'/" "$dbconn_file"
-        sed -i "s/\$GLOBALS\['password'\] = '.*'/\$GLOBALS['password'] = '$SYMBIOTA_WRITE_PASSWORD'/" "$dbconn_file"
-        sed -i "s/\$GLOBALS\['readonlypwd'\] = '.*'/\$GLOBALS['readonlypwd'] = '$SYMBIOTA_READ_PASSWORD'/" "$dbconn_file"
-        sed -i "s/\$GLOBALS\['db'\] = '.*'/\$GLOBALS['db'] = '$MYSQL_DATABASE'/" "$dbconn_file"
+        sed -i.bak "s#\(\$GLOBALS\[['\"]readonly['\"]\][[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$SYMBIOTA_READ_USER'#" "$dbconn_file" && rm "${dbconn_file}.bak"
+        sed -i.bak "s#\(\$GLOBALS\[['\"]username['\"]\][[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$SYMBIOTA_WRITE_USER'#" "$dbconn_file" && rm "${dbconn_file}.bak"
+        sed -i.bak "s#\(\$GLOBALS\[['\"]password['\"]\][[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$SYMBIOTA_WRITE_PASSWORD'#" "$dbconn_file" && rm "${dbconn_file}.bak"
+        sed -i.bak "s#\(\$GLOBALS\[['\"]readonlypwd['\"]\][[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$SYMBIOTA_READ_PASSWORD'#" "$dbconn_file" && rm "${dbconn_file}.bak"
+        sed -i.bak "s#\(\$GLOBALS\[['\"]db['\"]\][[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'$MYSQL_DATABASE'#" "$dbconn_file" && rm "${dbconn_file}.bak"
 
         # Database host should be symbiota-db (docker container name) or symbiota-db-dev
-        sed -i "s/\$GLOBALS\['host'\] = '.*'/\$GLOBALS['host'] = 'symbiota-db-dev'/" "$dbconn_file"
+        sed -i.bak "s#\(\$GLOBALS\[['\"]host['\"]\][[:space:]]*=[[:space:]]*\)['\"][^'\"]*['\"]#\1'symbiota-db-dev'#" "$dbconn_file" && rm "${dbconn_file}.bak"
 
         log_success "Updated dbconnection.php"
     else
