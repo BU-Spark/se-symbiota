@@ -49,6 +49,8 @@ Please visit the [CONTRIBUTING.md](docs/CONTRIBUTING.md) page for guidance on co
 
 # How to change file size of php in server OR Server Configuration for Large File Uploads
 
+###(Shortcut: Just run `bash update_php.sh` in your terminal)
+
 This guide provides a step-by-step process to increase PHP file upload limits and update the application logic to support large data imports (e.g., 175MB+ ZIP archives).
 
 ---
