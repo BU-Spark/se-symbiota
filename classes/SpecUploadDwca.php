@@ -451,23 +451,45 @@ class SpecUploadDwca extends SpecUploadBase{
 	}
 
 	private function locateBaseFolder($pathFrag = ''){
-		if($handle = opendir($this->uploadTargetPath.$pathFrag)) {
+		$fullSearchPath = $this->uploadTargetPath . $pathFrag;
+		
+		// DEBUG: Print where we are looking
+		$this->outputMsg('<li style="color:blue;">DEBUG: Scanning folder: ' . $fullSearchPath . '</li>');
+
+		if($handle = opendir($fullSearchPath)) {
 			while(false !== ($item = readdir($handle))){
-				if($item){
-					if(is_file($this->uploadTargetPath.$pathFrag.$item)){
+				if($item != '.' && $item != '..'){
+					$fullItemPath = $fullSearchPath . $item;
+					
+					// DEBUG: Check what we found
+					// $this->outputMsg('<li style="margin-left:20px; font-size:0.9em;">Found item: ' . $item . '</li>');
+
+					// Check if this is the meta file
+					if(is_file($fullItemPath)){
 						if(strtolower($item) == 'meta.xml'){
+							$this->outputMsg('<li style="color:green; font-weight:bold;">DEBUG: SUCCESS! Found meta.xml at: ' . $pathFrag . '</li>');
 							$this->uploadTargetPath .= $pathFrag;
-							break;
+							closedir($handle);
+							return true; // Found it! Stop searching.
 						}
 					}
-					elseif(is_dir($this->uploadTargetPath.$pathFrag.$item) && $item != '.' && $item != '..'){
-						$pathFrag .= $item.'/';
-						$this->locateBaseFolder($pathFrag);
+					// If it's a directory, search inside it
+					elseif(is_dir($fullItemPath)){
+						$this->outputMsg('<li style="color:orange;">DEBUG: Entering subdirectory: ' . $item . '</li>');
+						
+						// RECURSION: Pass the concatenated path
+						if($this->locateBaseFolder($pathFrag . $item . '/')){
+							closedir($handle);
+							return true; // Found in subdir! Bubble up success.
+						}
 					}
 				}
 			}
 			closedir($handle);
+		} else {
+			$this->outputMsg('<li style="color:red; font-weight:bold;">DEBUG: ERROR! Could not open directory: ' . $fullSearchPath . ' (Check Permissions)</li>');
 		}
+		return false;
 	}
 
 	public function uploadData($finalTransfer){
@@ -671,6 +693,7 @@ class SpecUploadDwca extends SpecUploadBase{
 						if($this->includeImages){
 							if($this->setImageSourceArr()){
 								$this->outputMsg('<li>Loading image extension... </li>');
+								$this->debugUploadImageTempCount('dwca before uploadExtension(image)');
 								if($this->uploadType == $this->RESTOREBACKUP){
 									$this->imageFieldMap['occid']['field'] = 'coreid';
 									$this->imageFieldMap['originalurl']['field'] = 'accessuri';
@@ -686,6 +709,7 @@ class SpecUploadDwca extends SpecUploadBase{
 								$this->conn->query('SET autocommit=1');
 								$this->conn->query('SET unique_checks=1');
 								$this->conn->query('SET foreign_key_checks=1');
+								$this->debugUploadImageTempCount('dwca after uploadExtension(image)');
 
 								//Remove images that don't have an occurrence record in uploadspectemp table
 								$sql = 'DELETE ui.* '.
@@ -697,11 +721,22 @@ class SpecUploadDwca extends SpecUploadBase{
 								else{
 									$this->outputMsg('<li style="margin-left:20px;">WARNING deleting orphaned uploadimagetemp records: '.$this->conn->error.'</li> ');
 								}
+								$this->debugUploadImageTempCount('dwca after orphan delete');
 								$this->setImageTransferCount();
 								$this->outputMsg('<li style="margin-left:10px;">Complete: '.$this->imageTransferCount.' records loaded</li>');
 							}
+							else{
+								$this->outputMsg('<li style="margin-left:10px;color:#1f5a99;">DEBUG: setImageSourceArr() returned false (no image extension fields found).</li>');
+								$this->debugUploadImageTempCount('dwca setImageSourceArr false');
+							}
 						}
+						else{
+							$this->outputMsg('<li style="margin-left:10px;color:#1f5a99;">DEBUG: includeImages is false; skipping image extension import.</li>');
+							$this->debugUploadImageTempCount('dwca includeImages false');
+						}
+						$this->debugUploadImageTempCount('dwca before cleanUpload');
 						$this->cleanUpload();
+						$this->debugUploadImageTempCount('dwca after cleanUpload');
 						if($finalTransfer){
 							$this->finalTransfer();
 							$this->finalCleanup();

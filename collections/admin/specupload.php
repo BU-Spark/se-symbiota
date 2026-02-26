@@ -81,14 +81,28 @@ elseif($uploadType == $DIRECTUPLOAD || $uploadType == $STOREDPROCEDURE || $uploa
 				return;
 			}
 			<?php
-			$maxUpload = ini_get('upload_max_filesize');
-			$maxUpload = str_replace("M", "000000", $maxUpload);
-			if($maxUpload > 100000000) $maxUpload = 100000000;
-			echo 'var maxUpload = '.$maxUpload.";\n";
+			$maxUploadStr = ini_get('upload_max_filesize');
+			$unit = strtoupper(substr($maxUploadStr, -1));
+			$maxUpload = (int)$maxUploadStr;
+
+			switch($unit) {
+				case 'G': $maxUpload *= 1024; // To MB
+				case 'M': $maxUpload *= 1024; // To KB
+				case 'K': $maxUpload *= 1024; // To Bytes
+			}
+			if ($unit != 'G' && $unit != 'M' && $unit != 'K') {
+				$maxUpload *= 1048576; 
+			}
+			echo 'var maxUpload = ' . $maxUpload . ";\n";
+
 			?>
 			var file = inputObj.files[0];
 			if(file.size > maxUpload){
-				var msg = "<?php echo $LANG['IMPORT_FILE']; ?>"+file.name+" ("+Math.round(file.size/100000)/10+"<?php echo $LANG['IS_BIGGER'] . ' '; ?>"+(maxUpload/1000000)+"MB).";
+				var fileSizeMB = (file.size / 1048576).toFixed(1);
+				var limitMB = (maxUpload / 1048576).toFixed(1);
+
+				var msg = "<?php echo $LANG['IMPORT_FILE']; ?> " + file.name + " (" + fileSizeMB + " MB) " +
+						"<?php echo $LANG['IS_BIGGER']; ?> (" + limitMB + " MB).";
 				if(file.name.slice(-3) != "zip") msg = msg + "<?php echo $LANG['MAYBE_ZIP']; ?>";
 				alert(msg);
 			}
@@ -158,7 +172,8 @@ include($SERVER_ROOT.'/includes/header.php');
 						<input name="uspid" type="hidden" value="<?php echo $uspid; ?>" />
 						<input name="collid" type="hidden" value="<?php echo $collid; ?>" />
 						<input name="uploadtype" type="hidden" value="<?php echo $uploadType; ?>" />
-						<input name="MAX_FILE_SIZE" type="hidden" value="100000000" />
+						<!-- <input name="MAX_FILE_SIZE" type="hidden" value="100000000" /> -->
+						<input name="MAX_FILE_SIZE" type="hidden" value="250000000" />
 					</div>
 				</div>
 			</fieldset>

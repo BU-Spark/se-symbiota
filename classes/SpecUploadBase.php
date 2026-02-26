@@ -387,9 +387,19 @@ class SpecUploadBase extends SpecUpload{
 			$fieldMap = $this->imageFieldMap;
 			$symbFieldsRaw = $this->imageSymbFields;
 			$sourceArr = $this->imageSourceArr;
-			$translationMap = array('accessuri'=>'originalurl','thumbnailaccessuri'=>'thumbnailurl','goodqualityaccessuri'=>'url',
-				'providermanagedid'=>'sourceidentifier','usageterms'=>'copyright','webstatement'=>'accessrights','creator'=>'creator',
-				'comments'=>'notes','associatedspecimenreference'=>'referenceurl');
+			$translationMap = array(
+				'accessuri'              => 'originalurl',
+				'thumbnailaccessuri'     => 'thumbnailurl',
+				'goodqualityaccessuri'   => 'url',
+				'providermanagedid'      => 'sourceidentifier',
+				'identifier'             => 'sourceidentifier',
+				'references'             => 'referenceurl',
+				'usageterms'             => 'copyright',
+				'webstatement'           => 'accessrights',
+				'creator'                => 'creator',
+				'comments'               => 'notes',
+				'associatedspecimenreference' => 'referenceurl'
+			);
 		}
 
 		$symbFields = array();
@@ -401,6 +411,13 @@ class SpecUploadBase extends SpecUpload{
 		$sourceSymbArr = Array();
 		foreach($fieldMap as $symbField => $fArr){
 			if($symbField != 'dbpk') $sourceSymbArr[$fArr["field"]] = $symbField;
+		}
+		$usedTargetFieldArr = array();
+		foreach($sourceSymbArr as $mappedField){
+			$mappedField = strtolower($mappedField);
+			if($mappedField && $mappedField != 'unmapped' && strpos($mappedField,'unmapped-') !== 0){
+				$usedTargetFieldArr[$mappedField] = true;
+			}
 		}
 
 		if($this->uploadType == $this->NFNUPLOAD && !in_array('subject_references', $this->occurSourceArr) && !in_array('subject_recordid', $this->occurSourceArr)){
@@ -423,13 +440,18 @@ class SpecUploadBase extends SpecUpload{
 				$isAutoMapped = false;
 				$tranlatedFieldName = str_replace(array('_',' ','.','(',')'),'',$fieldName);
 				if($autoMap){
+					$autoMapTarget = '';
 					if(array_key_exists($tranlatedFieldName,$translationMap)) $tranlatedFieldName = strtolower($translationMap[$tranlatedFieldName]);
 					if(in_array($tranlatedFieldName,$symbFields) && !in_array($fieldName,$autoMapExclude)){
-						$isAutoMapped = true;
+						$autoMapTarget = $tranlatedFieldName;
 					}
 					elseif(in_array('specify:'.$fieldName,$symbFields)){
-						$tranlatedFieldName = strtolower('specify:'.$fieldName);
+						$autoMapTarget = strtolower('specify:'.$fieldName);
+					}
+					if($autoMapTarget && !array_key_exists($autoMapTarget,$usedTargetFieldArr)){
+						$tranlatedFieldName = $autoMapTarget;
 						$isAutoMapped = true;
+						$usedTargetFieldArr[$autoMapTarget] = true;
 					}
 					// elseif(in_array('associatedOccurrence:'.$fieldName,$symbFields)){
 					// 	$tranlatedFieldName = strtolower('associatedOccurrence:'.$fieldName);
@@ -555,6 +577,23 @@ class SpecUploadBase extends SpecUpload{
 		$this->conn->query($sqlDel3);
 		$sqlDel4 = 'DELETE FROM uploadkeyvaluetemp WHERE (collid IN('.$this->collId.'))';
 		$this->conn->query($sqlDel4);
+		$this->debugUploadImageTempCount('after prepUploadData');
+	}
+
+	protected function debugUploadImageTempCount($label){
+		if(!$this->collId) return;
+		$sql = 'SELECT COUNT(*) AS totalCnt, '.
+			'SUM(CASE WHEN occid IS NOT NULL THEN 1 ELSE 0 END) AS linkedCnt, '.
+			'SUM(CASE WHEN occid IS NULL THEN 1 ELSE 0 END) AS unlinkedCnt, '.
+			'SUM(CASE WHEN dbpk IS NOT NULL AND dbpk != "" THEN 1 ELSE 0 END) AS dbpkCnt, '.
+			'SUM(CASE WHEN originalurl LIKE "http%" OR originalurl LIKE "/%" THEN 1 ELSE 0 END) AS validPathCnt '.
+			'FROM uploadimagetemp WHERE (collid = '.$this->collId.')';
+		$rs = $this->conn->query($sql);
+		if($rs && $r = $rs->fetch_object()){
+			$this->outputMsg('<li style="margin-left:10px;color:#1f5a99;">DEBUG uploadimagetemp ['.$label.']: total='.$r->totalCnt.
+				', linked='.$r->linkedCnt.', unlinked='.$r->unlinkedCnt.', withDbpk='.$r->dbpkCnt.', validPath='.$r->validPathCnt.'</li>');
+		}
+		if($rs) $rs->free();
 	}
 
 	public function uploadData($finalTransfer){
@@ -577,14 +616,16 @@ class SpecUploadBase extends SpecUpload{
 	}
 
 	protected function cleanUpload(){
+		$this->debugUploadImageTempCount('cleanUpload start');
 
 		if($this->collMetadataArr["managementtype"] == 'Snapshot' || $this->collMetadataArr["managementtype"] == 'Aggregate'){
-			//If collection is a snapshot, map upload to existing records. These records will be updated rather than appended
+			//If collection is a snapshot, map upload to existing records. These records will be updated rather than appended to the collection. If collection is an aggregate, map upload to existing records to prevent duplicates across multiple uploads. These records will be updated rather than appended to the collection.	
 			$this->outputMsg('<li>Linking records (e.g. matching Primary Identifier)... </li>');
 			$this->updateOccidMatchingDbpk();
 		}
 
 		$this->prepareAssociatedMedia();
+		$this->debugUploadImageTempCount('after prepareAssociatedMedia');
 
 		//Run custom cleaning Stored Procedure, if one exists
 		if($this->storedProcedure){
@@ -623,8 +664,10 @@ class SpecUploadBase extends SpecUpload{
 		//Prefrom general cleaning and parsing tasks
 		$this->recordCleaningStage1();
 
+		$this->debugUploadImageTempCount('before cleanImages');
 		$this->cleanImages();
 		//Reset $treansferCnt so that count is accurate since some records may have been deleted due to data integrety issues
+		$this->debugUploadImageTempCount('after cleanImages');
 		$this->setTransferCount();
 		$this->setIdentTransferCount();
 		$this->setImageTransferCount();
@@ -925,6 +968,23 @@ class SpecUploadBase extends SpecUpload{
 
 	protected function transferOccurrences(){
 		//Clean and Transfer records from uploadspectemp to specimens
+		// $sql = 'UPDATE uploadspectemp u INNER JOIN omoccurrences o ON ((u.occurrenceID = o.occurrenceID) AND(u.catalogNumber = o.catalogNumber)) OR u.collid = o.collid SET u.occid = o.occid WHERE u.occid IS NULL AND u.collid IN ('.$this->collId.');';
+		// $sql = 'UPDATE uploadspectemp u INNER JOIN omoccurrences o ON u.collid = o.collid AND ((u.occurrenceID IS NOT NULL AND u.occurrenceID = o.occurrenceID) OR (u.catalogNumber IS NOT NULL AND u.catalogNumber = o.catalogNumber)) SET u.occid = o.occid WHERE u.occid IS NULL AND u.collid IN ('.$this->collId.');';
+		$sql = 'UPDATE uploadspectemp u
+        INNER JOIN omoccurrences o
+          ON u.collid = o.collid
+         AND u.dbpk = o.dbpk
+        SET u.occid = o.occid
+        WHERE u.occid IS NULL
+          AND u.collid IN ('.$this->collId.');';
+	
+		if($this->conn->query($sql)){
+			$this->outputMsg('<li>Linked '.$this->conn->affected_rows.' new records</li>');
+		}
+		else{
+			$this->outputMsg('<li><span style="color:red;">ERROR</span> linking new records ('.$this->conn->error.')</li>');
+		}
+
 		if($this->uploadType == $this->NFNUPLOAD){
 			//Transfer edits to revision history table
 			$this->outputMsg('<li>Transferring edits to versioning tables...</li>');
@@ -995,9 +1055,19 @@ class SpecUploadBase extends SpecUpload{
 				$insertCnt = 0;
 				if($this->conn->query($sql)){
 					$insertCnt = $this->conn->affected_rows;
+					
+					if($this->conn->warning_count){
+						if($wr = $this->conn->query("SHOW WARNINGS")){
+							while($row = $wr->fetch_assoc()){
+								$this->outputMsg('<li style="margin-left:10px"><span style="color:orange">WARNING</span>: '.$row['Message'].'</li>');
+							}
+							$wr->free();
+						}
+					}
+
 					$warnCnt = $this->conn->warning_count;
 					if($warnCnt){
-						if(strpos($this->conn->get_warnings()->message,'UNIQUE_occurrenceID'))
+						if(strpos($this->conn->get_warnings()->message,'UNIQUE_occurrenceID') !== false)
 							$this->outputMsg('<li style="margin-left:10px"><span style="color:orange">WARNING</span>: '.$warnCnt.' records failed to load due to duplicate occurrenceID values which must be unique across all collections)</li>');
 					}
 				}
@@ -1008,8 +1078,30 @@ class SpecUploadBase extends SpecUpload{
 				if(!$this->updateOccidMatchingDbpk()){
 					$this->outputMsg('<li>ERROR updating occid on recent Insert batch: '.$this->errorStr.'</li> ');
 				}
+				//$this->outputMsg('<li style="margin-left:10px">'.$cnt.': '.$insertCnt.' inserted</li>');
+				//$insertTarget -= $transactionInterval;
+				//$cnt++;
 				$this->outputMsg('<li style="margin-left:10px">'.$cnt.': '.$insertCnt.' inserted</li>');
-				$insertTarget -= $transactionInterval;
+
+				// Recount remaining rows (updates loop condition safely)
+				$sqlCnt = 'SELECT COUNT(*) AS cnt
+						FROM uploadspectemp
+						WHERE occid IS NULL
+							AND collid IN('.$this->collId.')';
+
+				$rsCnt = $this->conn->query($sqlCnt);
+				$insertTarget = 0;
+				if($rsCnt && ($rCnt = $rsCnt->fetch_object())){
+					$insertTarget = (int)$rCnt->cnt;
+				}
+				if($rsCnt) $rsCnt->free();
+
+				// Stuck-guard: if we inserted nothing but still have rows, stop and report
+				if($insertCnt == 0 && $insertTarget > 0){
+					$this->outputMsg('<li style="margin-left:10px"><span style="color:red;">ERROR</span>: 0 inserted but '.$insertTarget.' remain. Insert is being ignored due to a constraint. See warnings above.</li>');
+					break;
+				}
+				
 				$cnt++;
 			};
 
@@ -1421,6 +1513,7 @@ class SpecUploadBase extends SpecUpload{
 	}
 
 	private function cleanImages(){
+		$this->debugUploadImageTempCount('cleanImages entry');
 		$sql = 'SELECT collid FROM uploadimagetemp WHERE collid = '.$this->collId.' LIMIT 1';
 		$rs = $this->conn->query($sql);
 		if($rs->num_rows){
@@ -1430,11 +1523,13 @@ class SpecUploadBase extends SpecUpload{
 			if(!$this->conn->query($sql)){
 				$this->outputMsg('<li style="margin-left:20px;">WARNING removing non-jpgs from uploadimagetemp: '.$this->conn->error.'</li> ');
 			}
+			$this->debugUploadImageTempCount('after cleanImages delete invalid path');
 			//Remove images that are obviously not JPGs
 			$sql = 'DELETE FROM uploadimagetemp WHERE (originalurl LIKE "%.dng" OR originalurl LIKE "%.tif") AND (collid = '.$this->collId.')';
 			if(!$this->conn->query($sql)){
 				$this->outputMsg('<li style="margin-left:20px;">WARNING removing non-jpgs from uploadimagetemp: '.$this->conn->error.'</li> ');
 			}
+			$this->debugUploadImageTempCount('after cleanImages delete dng/tif');
 			//Update occid for images of occurrence records already in portal
 			$sql = 'UPDATE uploadimagetemp ui INNER JOIN uploadspectemp u ON ui.collid = u.collid AND ui.dbpk = u.dbpk '.
 				'SET ui.occid = u.occid '.
@@ -1442,15 +1537,18 @@ class SpecUploadBase extends SpecUpload{
 			if(!$this->conn->query($sql)){
 				$this->outputMsg('<li style="margin-left:20px;">WARNING updating occids within uploadimagetemp: '.$this->conn->error.'</li> ');
 			}
+			$this->debugUploadImageTempCount('after cleanImages link occid by dbpk');
 			//Remove and skip previously loaded images where urls match exactly
 			$sql = 'DELETE u.* FROM uploadimagetemp u INNER JOIN media m ON u.occid = m.occid WHERE (u.collid = '.$this->collId.') AND (u.originalurl = m.originalurl)';
 			if(!$this->conn->query($sql)){
 				$this->outputMsg('<li style="margin-left:20px;">ERROR deleting uploadimagetemp records with matching urls: '.$this->conn->error.'</li> ');
 			}
+			$this->debugUploadImageTempCount('after cleanImages delete existing exact originalurl');
 			$sql = 'DELETE u.* FROM uploadimagetemp u INNER JOIN media m ON u.occid = m.occid WHERE (u.collid = '.$this->collId.') AND (u.originalurl IS NULL) AND (m.originalurl IS NULL) AND (u.url = m.url)';
 			if(!$this->conn->query($sql)){
 				$this->outputMsg('<li style="margin-left:20px;">ERROR deleting image records with matching originalurls: '.$this->conn->error.'</li> ');
 			}
+			$this->debugUploadImageTempCount('after cleanImages delete existing url no originalurl');
 		}
 		$rs->free();
 	}
@@ -1462,12 +1560,35 @@ class SpecUploadBase extends SpecUpload{
 			if($r->cnt){
 				$this->outputMsg('<li>Transferring images...</li>');
 				//Update occid for images of new records
+				// ---------------------------------------------------------
+				// STRATEGY A: Link via DBPK (Standard)
+				// ---------------------------------------------------------
 				$sql = 'UPDATE uploadimagetemp ui INNER JOIN uploadspectemp u ON ui.collid = u.collid AND ui.dbpk =u.dbpk '.
 					'SET ui.occid = u.occid '.
 					'WHERE (ui.occid IS NULL) AND (u.occid IS NOT NULL) AND (ui.collid = '.$this->collId.')';
 				//echo $sql.'<br/>';
-				if(!$this->conn->query($sql)){
-					$this->outputMsg('<li style="margin-left:20px;">WARNING updating occids within uploadimagetemp: '.$this->conn->error.'</li> ');
+				$this->conn->query($sql);
+
+				// ---------------------------------------------------------
+				// STRATEGY B: Link via Catalog Number
+				// ---------------------------------------------------------
+				$sql = 'UPDATE uploadimagetemp ui 
+						INNER JOIN uploadspectemp u ON ui.collid = u.collid 
+						SET ui.occid = u.occid 
+						WHERE (ui.occid IS NULL) AND (u.occid IS NOT NULL) 
+						AND (ui.collid = '.$this->collId.')
+						AND (ui.originalurl LIKE CONCAT("%", u.catalogNumber, "%") OR ui.originalurl LIKE CONCAT("%", u.occurrenceID, "%"))';
+				$this->conn->query($sql);
+
+				// DIAGNOSTIC
+				$sqlCheck = 'SELECT count(*) as cnt FROM uploadimagetemp WHERE (occid IS NOT NULL) AND (collid = '.$this->collId.')';
+				$rsCheck = $this->conn->query($sqlCheck);
+				if($rCheck = $rsCheck->fetch_object()){
+					if($rCheck->cnt == 0){
+						$this->outputMsg('<li style="color:red; margin-left:10px;">CRITICAL: Images found but NONE could be linked to specimens. Batch will be empty.</li>');
+					} else {
+						$this->outputMsg('<li style="margin-left:10px;">Linked '.$rCheck->cnt.' images to specimens.</li>');
+					}
 				}
 
 				//Set image transfer count
@@ -1497,22 +1618,47 @@ class SpecUploadBase extends SpecUpload{
 				$sql = 'UPDATE uploadimagetemp u INNER JOIN media m ON u.occid = m.occid '.
 					'SET m.originalurl = u.originalurl, m.url = IFNULL(u.url,if(SUBSTRING(m.url,1,1)="/",m.url,NULL)), m.thumbnailurl = IFNULL(u.thumbnailurl,if(SUBSTRING(m.thumbnailurl,1,1)="/",m.thumbnailurl,NULL)) '.
 					'WHERE (u.collid = '.$this->collId.') AND (u.sourceIdentifier = m.sourceIdentifier) ';
-				if(!$this->conn->query($sql)){
-					$this->outputMsg('<li style="margin-left:20px;">ERROR remapping URL with matching sourceIdentifier: '.$this->conn->error.'</li> ');
-				}
+				$this->conn->query($sql);
+				
 				$sql = 'DELETE u.* FROM uploadimagetemp u INNER JOIN media m ON u.occid = m.occid WHERE (u.collid = '.$this->collId.') AND (u.sourceIdentifier = m.sourceIdentifier)';
-				if(!$this->conn->query($sql)){
-					$this->outputMsg('<li style="margin-left:20px;">ERROR deleting incoming image records that have matching sourceIdentifier: '.$this->conn->error.'</li> ');
-				}
+				$this->conn->query($sql);
 
 				//Load images
 				$sql = 'INSERT INTO media ('.implode(',',array_keys($imageFieldArr)).') '.
 					'SELECT ' . implode(',',array_keys($imageFieldArr)) . ' FROM uploadimagetemp WHERE (occid IS NOT NULL) AND (collid = '.$this->collId.')';
 				if($this->conn->query($sql)){
-					$this->outputMsg('<li style="margin-left:10px;">'.$this->imageTransferCount.' images transferred</li> ');
+					$this->outputMsg('<li style="margin-left:10px;">'.$this->conn->affected_rows.' images transferred to Media table</li> ');
 				}
-				else{
-					$this->outputMsg('<li>FAILED! ERROR: '.$this->conn->error.'</li> ');
+				// Create new batch for images
+				$this->outputMsg('<li>Creating new batch... </li>');
+				$timestamp = time(); // Get the current timestamp
+				$readableTimestamp = date('Y-m-d H:i:s', $timestamp); // Convert the timestamp to a human-readable format
+				$batchname = 'Batch ' . $readableTimestamp; // Concatenate 'batch' with the timestamp
+				$sql = "INSERT INTO batch (batch_name, image_batch_path, last_edited, collID, ingest_date) 
+				        VALUES ('$batchname', '', -1, $this->collId, NOW())";
+				if($this->conn->query($sql)){
+					$batchID = $this->conn->insert_id;
+					$this->outputMsg('<li style="margin-left:10px;">Batch created (ID: '.$batchID.')</li> ');
+
+					// Add images to batch
+					$sql_set_ordinal = "SET @ordinal = 0;";
+					$this->conn->query($sql_set_ordinal);
+						
+					$sql_insert = "
+						INSERT INTO batch_XREF (mediaID, batchID, ordinal)
+						SELECT m.mediaID, $batchID, @ordinal := @ordinal + 1
+						FROM media m
+						INNER JOIN uploadimagetemp uit ON m.occid = uit.occid AND m.originalurl = uit.originalurl
+						WHERE uit.collid = $this->collId
+					";
+
+					if ($this->conn->query($sql_insert)) {
+						$this->outputMsg('<li style="margin-left:10px;">'.$this->conn->affected_rows.' images linked to Batch #'.$batchID.'</li>');
+					} else {
+						$this->outputMsg('<li style="margin-left:10px; color:red;">BATCH LINKING FAILED! ERROR: ' . $this->conn->error . '</li>');
+					}
+				} else {
+					$this->outputMsg('<li style="margin-left:10px; color:red;">BATCH CREATION FAILED! ERROR: ' . $this->conn->error . '</li>');
 				}
 			}
 		}
@@ -1574,6 +1720,8 @@ class SpecUploadBase extends SpecUpload{
 			while ($r = $rs->fetch_object()) {
 
 				// Check if the contents of the field is proper JSON
+				$assocOccur = null;
+    			$verbatimText = '';
 				if ($assocOccArr = json_decode($r->associatedOccurrences, true)) {
 					// Proper JSON, parsed successfully
 
@@ -2074,6 +2222,8 @@ class SpecUploadBase extends SpecUpload{
 				$testUrl = $recMap['url'];
 			}
 			else{
+				// DEBUG: Log why we are returning false
+				$this->outputMsg('<li style="color:red; margin-left:20px;">DEBUG: Skipped image row - No URL found. Check your Field Mapping. (Keys available: '.implode(',', array_keys($recMap)).')</li>');
 				//Abort, no images avaialble
 				return false;
 			}
@@ -2087,7 +2237,7 @@ class SpecUploadBase extends SpecUpload{
 					$parsed_mime = $file['type'];
 				} catch(Throwable $error) {
 					error_log('SpecUploadBase: Failed to Parse File: ' . $error->getMessage() . ' ' . $testUrl . ' ' . __LINE__ . ' ');
-					$this->outputMsg('<li style="margin-left:20px;">File format could not be parsed: ' . $testUrl . ' </li>');
+					$this->outputMsg('<li style="color:red; margin-left:20px;">DEBUG: Failed to detect file type for ' . $testUrl . ' (Error: '.$error->getMessage().')</li>');
 					return false;
 				}
 
@@ -2095,9 +2245,9 @@ class SpecUploadBase extends SpecUpload{
 			$mime = Media::getAllowedMime($parsed_mime);
 			if(!$mime) {
 				if($parsed_mime) {
-					$this->outputMsg('<li style="margin-left:20px;">Unsupported File Format: ' . $parsed_mime . ' from url ' . $testUrl . ' </li>');
+					$this->outputMsg('<li style="color:red; margin-left:20px;">DEBUG: Unsupported File Format (' . $parsed_mime . ') for url ' . $testUrl . ' </li>');
 				} else {
-					$this->outputMsg('<li style="margin-left:20px;">Could Not Parse the File Format: ' . $testUrl . ' </li>');
+					$this->outputMsg('<li style="color:red; margin-left:20px;">DEBUG: Could Not Parse the File Format for ' . $testUrl . ' </li>');
 				}
 				// Not Supported extension
 				return false;
@@ -2106,18 +2256,19 @@ class SpecUploadBase extends SpecUpload{
 			}
 
 			$mediaTypeStr = explode('/', $mime)[0];
-			$mediaType = MediaType::tryFrom($mediaTypeStr);
-
-			if(!$mediaType) {
-				$this->outputMsg('<li style="margin-left:20px;">Invalid Media Type: ' . $mediaType . ' from url ' . $testUrl . ' </li>');
+			// Use string check instead of Enum for compatibility if needed
+			if($mediaTypeStr != 'image' && $mediaTypeStr != 'audio' && $mediaTypeStr != 'video'){
+				$this->outputMsg('<li style="color:red; margin-left:20px;">DEBUG: Invalid Media Type (' . $mediaTypeStr . ') for url ' . $testUrl . ' </li>');
 				return false;
 			}
 
+			// PHP 8.1+ Enum check (Keep if your server supports it)
+			$mediaType = MediaType::tryFrom($mediaTypeStr);
 			$recMap['mediaType'] = $mediaType;
 
 			if($this->verifyImageUrls){
 				if(!$this->urlExists($testUrl)){
-					$this->outputMsg('<li style="margin-left:20px;">Bad url: '.$testUrl.'</li>');
+					$this->outputMsg('<li style="color:red; margin-left:20px;">DEBUG: Verify URL failed (404/Timeout) for: '.$testUrl.'</li>');
 					return false;
 				}
 			}
@@ -2154,10 +2305,11 @@ class SpecUploadBase extends SpecUpload{
 					if($this->imageTransferCount%$repInt == 0) $this->outputMsg('<li style="margin-left:10px;">'.$this->imageTransferCount.' images processed</li>');
 				}
 				else{
-					$this->outputMsg("<li>FAILED adding image record #".$this->imageTransferCount."</li>");
-					$this->outputMsg("<li style='margin-left:10px;'>Error: ".$this->conn->error."</li>");
+					$this->outputMsg("<li style='color:red; margin-left:10px;'>DEBUG: SQL INSERT FAILED: ".$this->conn->error."</li>");
 					$this->outputMsg("<li style='margin:0px 0px 10px 10px;'>SQL: $sql</li>");
 				}
+			} else {
+				$this->outputMsg("<li style='color:red; margin-left:10px;'>DEBUG: SQL Fragment generation failed (Empty values?)</li>");
 			}
 		}
 	}
