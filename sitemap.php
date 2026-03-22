@@ -1,9 +1,10 @@
 <?php
 include_once('config/symbini.php');
 include_once($SERVER_ROOT . '/classes/SiteMapManager.php');
-if($LANG_TAG != 'en' && file_exists($SERVER_ROOT . '/content/lang/sitemap.' . $LANG_TAG . '.php'))
-	include_once($SERVER_ROOT.'/content/lang/sitemap.' . $LANG_TAG . '.php');
-else include_once($SERVER_ROOT.'/content/lang/sitemap.en.php');
+include_once($SERVER_ROOT . '/classes/utilities/Language.php');
+
+Language::load('sitemap');
+
 header('Content-Type: text/html; charset=' . $CHARSET);
 
 $smManager = new SiteMapManager();
@@ -89,7 +90,7 @@ if(!$schemaVersion){
 			</ul>
 
 			<?php
-			$clList = $smManager->getChecklistList((array_key_exists('ClAdmin',$USER_RIGHTS)?$USER_RIGHTS['ClAdmin']:0));
+			$clList = $smManager->getChecklistList();
 			$clAdmin = array();
 			if($clList && isset($USER_RIGHTS['ClAdmin'])){
 				$clAdmin = array_intersect_key($clList,array_flip($USER_RIGHTS['ClAdmin']));
@@ -197,6 +198,11 @@ if(!$schemaVersion){
 							<li>
 								<a href="collections/map/staticmaphandler.php"><?= $LANG['MANAGE_TAXON_THUMBNAILS'] ?></a>
 							</li>
+							<li>
+								<a href="<?= $CLIENT_ROOT ?>/admin/othercatalog.php">
+									<?= $LANG['OTHER_CAT_TRANSFER'] ?>
+								</a>
+							</li>
 						</ul>
 						<?php
 					}
@@ -253,7 +259,7 @@ if(!$schemaVersion){
 					<div id="images">
 						<p class="description">
 							<?= $LANG['SEESYMBDOC'] ?>
-							<a href="https://biokic.github.io/symbiota-docs/editor/images/"><?= $LANG['IMGSUB'] ?></a>
+							<a href="https://docs.symbiota.org/Collection_Manager_Guide/Images" target="_blank"><?= $LANG['IMGSUB'] ?></a>
 							<?= $LANG['FORANOVERVIEW'] ?>
 						</p>
 					</div>
@@ -323,7 +329,7 @@ if(!$schemaVersion){
 							<?= $LANG['THEFOLLOWINGSPEC'] ?>
 					</p>
 						<ul>
-							<li><a href="taxa/profile/tpeditor.php?taxon="><?= $LANG['SYN_COM'] ?></a></li>
+							<li><a href="taxa/profile/tpeditor.php?taxon="><?= $LANG['VERNAC_COM'] ?></a></li>
 							<li><a href="taxa/profile/tpeditor.php?taxon=&tabindex=4"><?= $LANG['TEXTDESC'] ?></a></li>
 							<li><a href="taxa/profile/tpeditor.php?taxon=&tabindex=1"><?= $LANG['EDITIMG'] ?></a></li>
 							<li class="nested-li"><a href="taxa/profile/tpeditor.php?taxon=&category=imagequicksort&tabindex=2"><?= $LANG['IMGSORTORD'] ?></a></li>
@@ -416,9 +422,9 @@ if(!$schemaVersion){
 					<div>
 						<ul>
 						<?php
-						$smManager->setCollectionList();
-						if($collList = $smManager->getCollArr()){
-							foreach($collList as $k => $cArr){
+						$collArr = $smManager->getCollectionList();
+						if(isset($collArr['s'])){
+							foreach($collArr['s'] as $k => $cArr){
 								echo '<li>';
 								echo '<a href="' . $CLIENT_ROOT . '/collections/misc/collprofiles.php?collid=' . $k . '&emode=1">';
 								echo $cArr['name'];
@@ -440,7 +446,7 @@ if(!$schemaVersion){
 					</h2>
 					<p class="description">
 						<?= $LANG['PARA2'] ?>
-						<a href="https://biokic.github.io/symbiota-docs/col_obs/" target="_blank"><?= $LANG['SYMBDOCU'] ?></a> <?= $LANG['FORMOREINFO'] ?>.
+						<a href="https://docs.symbiota.org/Collector_Observer_Guide/" target="_blank"><?= $LANG['SYMBDOCU'] ?></a> <?= $LANG['FORMOREINFO'] ?>.
 					<p class="description">
 					<h3 class="subheader">
 						<span>
@@ -450,22 +456,9 @@ if(!$schemaVersion){
 					<div>
 						<ul>
 							<?php
-							$obsList = $smManager->getObsArr();
-							$genObsList = $smManager->getGenObsArr();
 							$obsManagementStr = '';
-
-							if($obsList){
-								foreach($genObsList as $k => $oArr){
-									?>
-									<li>
-										<a href="collections/editor/observationsubmit.php?collid=<?= $k ?>">
-											<?= $oArr['name'] ?>
-										</a>
-									</li>
-									<?php
-									if($oArr['isadmin']) $obsManagementStr .= '<li><a href="collections/misc/collprofiles.php?collid=' . $k . '&emode=1">' . htmlspecialchars($oArr['name'], ENT_COMPAT | ENT_HTML401 | ENT_SUBSTITUTE) . "</a></li>\n";
-								}
-								foreach($obsList as $k => $oArr){
+							if(isset($collArr['o'])){
+								foreach($collArr['o'] as $k => $oArr){
 									?>
 									<li>
 										<a href="collections/editor/observationsubmit.php?collid=<?= $k ?>">
@@ -482,27 +475,6 @@ if(!$schemaVersion){
 							?>
 						</ul>
 						<?php
-						if($genObsList){
-							?>
-							<h3 class="subheader"><span>
-									<?= $LANG['PERSONAL'] ?>
-								</span>
-							</h3>
-							<ul>
-								<?php
-								foreach($genObsList as $k => $oArr){
-									?>
-									<li>
-										<a href="collections/misc/collprofiles.php?collid=<?= $k ?>&emode=1">
-											<?= $oArr['name'] ?>
-										</a>
-									</li>
-									<?php
-								}
-								?>
-							</ul>
-							<?php
-						}
 						if($obsManagementStr){
 							?>
 							<h3 class="subheader">
