@@ -1,8 +1,10 @@
 <?php
 include_once('../../config/symbini.php');
 include_once($SERVER_ROOT.'/classes/TaxonomyEditorManager.php');
-if($LANG_TAG != 'en' && file_exists($SERVER_ROOT.'/content/lang/taxa/taxonomy/taxonomyloader.' . $LANG_TAG . '.php')) include_once($SERVER_ROOT . '/content/lang/taxa/taxonomy/taxonomyloader.' . $LANG_TAG . '.php');
-else include_once($SERVER_ROOT.'/content/lang/taxa/taxonomy/taxonomyloader.en.php');
+include_once($SERVER_ROOT . '/classes/utilities/Language.php');
+
+Language::load('taxa/taxonomy/taxonomyloader');
+
 header('Content-Type: text/html; charset='.$CHARSET);
 $filename = file_exists($SERVER_ROOT . '/js/symb/' . $LANG_TAG . '.js') ? $CLIENT_ROOT . '/js/symb/' . $LANG_TAG . '.js' : $CLIENT_ROOT . '/js/symb/en.js';
 
@@ -10,6 +12,7 @@ if(!$SYMB_UID) header('Location: '.$CLIENT_ROOT.'/profile/index.php?refurl=../ta
 
 $tid = array_key_exists('tid',$_REQUEST) ? $_REQUEST['tid'] : '';
 $status = '';
+$filename = file_exists($SERVER_ROOT . '/js/symb/' . $LANG_TAG . '.js') ? $CLIENT_ROOT . '/js/symb/' . $LANG_TAG . '.js' : $CLIENT_ROOT . '/js/symb/en.js';
 
 //Sanitation
 if(!is_numeric($tid)) $tid = 0;
@@ -85,9 +88,9 @@ if($isEditor){
 		}
 		if($isEditor){
 			?>
-			<form id="loaderform" name="loaderform" action="taxonomyloader.php" method="post">
+			<form id="loaderform" name="loaderform" action="taxonomyloader.php" onsubmit="return validateFormInput(this)" method="post">
 				<div>
-					<h2>Sciname will be saved as: <span id="scinamedisplay" name="scinamedisplay"></span></h2>
+					<h2><?php echo $LANG['SCINAME_SAVED_AS']; ?>: <span id="scinamedisplay" name="scinamedisplay"></span></h2>
 				</div>
 				<input type="hidden" id="sciname" name="sciname" class="search-bar-long" value="" />
 				<fieldset class="bottom-breathing-room-rel">
@@ -95,8 +98,8 @@ if($isEditor){
 					<div style="display: flex; flex-direction: column;">
 						<div class="gridlike-form-row" style="gap:0;">
 							<div class="left-column">
-								<label for="sciname"> 
-									<?php echo $LANG['TAXON_NAME']; ?>: 
+								<label for="sciname">
+									<?php echo $LANG['TAXON_NAME']; ?>:
 								</label>
 							</div>
 							<input class='search-bar-long' style="margin-bottom: 0;" type="text" id="quickparser" name="quickparser" value="" onchange="parseName(this.form)"/>
@@ -109,9 +112,9 @@ if($isEditor){
 				<fieldset>
 					<legend><b><?php echo $LANG['ADD_NEW_TAXON']; ?></b></legend>
 					<div style="clear:both;">
-						<div class="left-column"> 
+						<div class="left-column">
 							<label for="rankid">
-								 <?php echo $LANG['TAXON_RANK'] . ' *'; ?>: 
+								 <?php echo $LANG['TAXON_RANK'] . ' *'; ?>:
 								</label>
 						</div>
 						<select id="rankid" name="rankid" title="Rank ID" class='search-bar-short bottom-breathing-room-rel-sm'>
@@ -136,7 +139,7 @@ if($isEditor){
 						</div>
 						<input type='text' id='author' name='author' class='search-bar-long' />
 					</div> -->
-					
+
 					<div style="clear:both;" id="genus-div">
 						<div class="left-column">
 							<label id="unitind1label" for="unitind1">
@@ -146,7 +149,13 @@ if($isEditor){
 						<select id="unitind1" name="unitind1" onchange="updateFullname(this.form, true)">
 							<option value=""></option>
 							<option value="&#215;">&#215;</option>
-							<option value="&#8224;">&#8224;</option>
+							<?php
+							if(!empty($GLOBALS['ACTIVATE_PALEO_DAGGER'])) {
+								?>
+								<option value="&#8224;">&#8224;</option>
+								<?php
+							}
+							?>
 						</select>
 						<input type='text' id='unitname1' name='unitname1' class='search-bar' aria-label="<?php echo $LANG['GENUS_OR_BASE']; ?>" title="<?php echo $LANG['GENUS_OR_BASE']; ?>"/>
 					</div>
@@ -210,7 +219,7 @@ if($isEditor){
 								<?php echo $LANG['PARENT_TAXON'] . ' *'; ?>:
 							</label>
 						</div>
-						<input required type="text" id="parentname" name="parentname" class='search-bar' />
+						<input type="text" id="parentname" name="parentname" class='search-bar' />
 						<span id="addparentspan" style="display:none;">
 							<a id="addparentanchor" href="taxonomyloader.php?target=" target="_blank">
 								<?php echo htmlspecialchars($LANG['ADD_PARENT'], ENT_COMPAT | ENT_HTML401 | ENT_SUBSTITUTE	); ?>
@@ -289,7 +298,7 @@ if($isEditor){
 			</div>
 			<?php
 		}
-		
+
 		?>
 	</div>
 	<?php

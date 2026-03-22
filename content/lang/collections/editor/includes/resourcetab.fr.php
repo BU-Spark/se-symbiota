@@ -16,6 +16,7 @@ $LANG['SURE_UNLINK'] = 'Voulez-vous vraiment dissocier enregistrement en tant qu
 $LANG['ERROR_DELETING'] = 'ERREUR lors de suppression du doublon';
 $LANG['GEN_RES_NOT_BLANK'] = 'Le nom de la ressource génétique ne doit pas être vide';
 $LANG['PERM_REMOVE_RES'] = 'Voulez-vous vraiment supprimer définitivement cette ressource?';
+$LANG['DELETE_ASSOC'] = 'Êtes-vous sûr de vouloir supprimer cette association?';
 
 $LANG['CHECKLIST_LINKS'] = "Liens avec échantillons de liste";
 $LANG['LINK_TO_CHECKLIST'] = "Lier l'Échantillon à Liste";
@@ -28,7 +29,7 @@ $LANG['SPEC_DUPES'] = "Spécimens Doublons";
 $LANG['SEARCH_RECS'] = 'Rechercher des Enregistrements à Lier';
 $LANG['CLUSTER_TITLE'] = 'Titre du Cluster';
 $LANG['UNLINK_BUT_MAINTAIN'] = 'Dissociez ces occurrences du cluster en double mais conservez les autres spécimens en tant que cluster en double valide';
-$LANG['REM_FROM_CLUSTER'] = 'Supprimer cette Occurrence du Cluster';
+$LANG['REM_FROM_CLUSTER'] = 'Supprimer du Cluster';
 $LANG['UNLINK'] = 'Dissocier';
 $LANG['CAT_NUM'] = 'Numéros de Catalogue';
 $LANG['GUID'] = 'GUID';

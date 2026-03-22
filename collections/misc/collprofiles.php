@@ -1,11 +1,12 @@
 <?php
 include_once('../../config/symbini.php');
-if($LANG_TAG != 'en' && file_exists($SERVER_ROOT.'/content/lang/collections/misc/collprofiles.' . $LANG_TAG . '.php')) include_once($SERVER_ROOT.'/content/lang/collections/misc/collprofiles.' . $LANG_TAG . '.php');
-else include_once($SERVER_ROOT . '/content/lang/collections/misc/collprofiles.en.php');
 include_once($SERVER_ROOT . '/classes/OccurrenceCollectionProfile.php');
 include_once($SERVER_ROOT . '/classes/OccurrenceEditorManager.php');
 include_once($SERVER_ROOT . '/classes/utilities/GeneralUtil.php');
 include_once($SERVER_ROOT.'/classes/OccurrenceEditorDeterminations.php');
+include_once($SERVER_ROOT . '/classes/utilities/Language.php');
+
+Language::load('collections/misc/collprofiles');
 
 header('Content-Type: text/html; charset=' . $CHARSET);
 unset($_SESSION['editorquery']);
@@ -62,6 +63,8 @@ $barcode = $occManager->getBarcode($firstIndex);
 	?>
 	<script src="<?php echo $CLIENT_ROOT; ?>/js/jquery-3.7.1.min.js" type="text/javascript"></script>
 	<script src="<?php echo $CLIENT_ROOT; ?>/js/jquery-ui.min.js" type="text/javascript"></script>
+	<script src="<?= $CLIENT_ROOT ?>/js/symb/searchform.js?ver=3" type="text/javascript"></script>
+	<script src="<?php echo $CLIENT_ROOT; ?>/js/symb/collections.list.js?ver=2" type="text/javascript"></script>
 	<script>
 
 		function toggleById(target) {
@@ -113,12 +116,20 @@ $barcode = $occManager->getBarcode($firstIndex);
 			if(e.submitter.value === "edit") {
 				return processEditQuickSearch('<?php echo $CLIENT_ROOT ?>')
 			} else if(e.submitter.value === "search") {
-				return submitAndRedirectSearchForm('<?php echo $CLIENT_ROOT ?>/collections/list.php?db=','&catnum=', '&taxa=', '&includecult=' + <?= !empty($SHOULD_INCLUDE_CULTIVATED_AS_DEFAULT) ? '1' : '0' ?> + '&includeothercatnum=1', '&includecult=' + <?php echo $SHOULD_INCLUDE_CULTIVATED_AS_DEFAULT ? '1' : '0' ?> + '&usethes=1&taxontype=2 ');
+				return submitAndRedirectSearchForm('<?= $CLIENT_ROOT ?>/collections/list.php?db=','&catnum=', '&taxa=', '&includecult=' + <?= !empty($SHOULD_INCLUDE_CULTIVATED_AS_DEFAULT) ? '1' : '0' ?> + '&includeothercatnum=1', '&includecult=' + <?= !empty($SHOULD_INCLUDE_CULTIVATED_AS_DEFAULT) ? '1' : '0' ?> + '&usethes=1&taxontype=2 ');
 			}
 
 			e.preventDefault();
 			return false;
 		}
+
+		function showItemsList(className) {
+  			const elements = document.getElementsByClassName(className);
+  			for (let i = 0; i < elements.length; i++) {
+				elements[i].style.display = 'list-item';
+			}
+		}
+
 	</script>
 	<style>
 		.importItem { margin-left:10px; display:none; }
@@ -147,6 +158,14 @@ $barcode = $occManager->getBarcode($firstIndex);
 		}
 		.bigger-left-margin-rel {
 			margin-left: 3rem;
+		}
+
+		.seemore-icon {
+			width: 13px;
+			height: 13px;
+		}
+		.link-icon {
+			text-decoration: none;
 		}
 
 		#quicksearch-box input {
@@ -238,8 +257,8 @@ $barcode = $occManager->getBarcode($firstIndex);
 			}
 		}
 	</style>
-	<link href="<?php echo $CLIENT_ROOT ?>/collections/search/css/searchStyles.css?ver=1" type="text/css" rel="stylesheet" />
-	<link href="<?php echo $CLIENT_ROOT ?>/collections/search/css/searchStylesInner.css" type="text/css" rel="stylesheet" />
+	<link href="<?php echo $CLIENT_ROOT ?>/css/searchStyles.css?ver=1" type="text/css" rel="stylesheet" />
+	<link href="<?php echo $CLIENT_ROOT ?>/css/searchStylesInner.css" type="text/css" rel="stylesheet" />
 </head>
 <body>
 	<?php
@@ -251,6 +270,9 @@ $barcode = $occManager->getBarcode($firstIndex);
 		<b><?= $LANG['COLL_PROFILE'] ?></b>
 	</div>
 	<div role="main" id="innertext" style="padding-top:0">
+		<div id="all_collections_parent_container" data-config='<?= json_encode([
+		'CURRENT_URL' => $_SERVER['REQUEST_URI'],
+		]) ?>'></div>
 		<?php
 		if ($collid && !$collid == 0){
 			?>
@@ -314,7 +336,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 			if ($collData['collectioncode']) $codeStr .= '-' . $collData['collectioncode'];
 			$codeStr .= ')';
 			$_SESSION['colldata'] = $collData;
-			echo '<h1 class="page-heading">' . $LANG['COLL_PROF_FOR'] . ':<br>' . $collData['collectionname'] . $codeStr . '</h1>';
+			echo '<h2 class="page-heading"><span class="screen-reader-only">' . $LANG['COLL_PROF_FOR'] . ':<br></span>' . $collData['collectionname'] . $codeStr . '</h2>';
 			// GBIF citations widget
 			if ($datasetKey) {
 				echo '<div style="margin-left: 10px; margin-bottom: 20px;">';
@@ -357,7 +379,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 								</a><?= $deactivateTag ?>
 							</li>
 							<?php
-							if ($collData['colltype'] == 'Preserved Specimens') {
+							if (strpos($collData['colltype'], 'Specimens')) {
 								?>
 								<li style="margin-left:10px">
 									<a href="../editor/imageoccursubmit.php?collid=<?= $collid ?>" <?= $deactivateStyle ?>>
@@ -377,17 +399,23 @@ $barcode = $occManager->getBarcode($firstIndex);
 									<?= $LANG['EDIT_EXISTING'] ?>
 								</a>
 							</li>
-							<!-- add a bullet point to link to the image batch -->
-							<li>
-								<a href="../quickentry/transcribe.php?collid=<?php echo $collid;?>">
-									<?php echo (isset($LANG['IMAGE_BATCH']) ? $LANG['IMAGE_BATCH'] : 'Image Transcription Quick Entry'); ?>
-								</a>
-							</li>
+						<!-- add a bullet point to link to the image batch -->
+						<li>
+							<a href="../quickentry/transcribe.php?collid=<?php echo $collid;?>">
+								<?php echo (isset($LANG['IMAGE_BATCH']) ? $LANG['IMAGE_BATCH'] : 'Image Transcription Quick Entry'); ?>
+							</a>
+						</li>
+						<?php
+						if ($collData['colltype'] != 'General Observations') {
+							?>
 							<li>
 								<a href="../editor/batchdeterminations.php?collid=<?= $collid ?>">
 									<?= $LANG['ADD_BATCH_DETER'] ?>
 								</a>
 							</li>
+							<?php
+						}
+						?>
 							<li>
 								<a href="../reports/labelmanager.php?collid=<?= $collid ?>">
 									<?= $LANG['PRINT_LABELS'] ?>
@@ -399,32 +427,37 @@ $barcode = $occManager->getBarcode($firstIndex);
 								</a>
 							</li>
 							<?php
-							if ($collManager->traitCodingActivated()) {
+							if ($collData['colltype'] != 'General Observations') {
+								if ($collManager->traitCodingActivated()) {
+									?>
+									<li>
+										<a href="javascript:void(0)" onclick="showItemsList('traitItem')">
+											<?= $LANG['TRAIT_CODING_TOOLS'] ?>
+										</a>
+										<a onclick="showItemsList('traitItem')">
+											<img class = seemore-icon src="../../images/tochild.png">
+										</a>
+									</li>
+									<li class="traitItem" style="margin-left:10px;display:none;">
+										<a href="../traitattr/occurattributes.php?collid=<?= $collid ?>">
+											<?= $LANG['TRAIT_CODING'] ?>
+										</a>
+									</li>
+									<li class="traitItem" style="margin-left:10px;display:none;">
+										<a href="../traitattr/attributemining.php?collid=<?= $collid ?>">
+											<?= $LANG['TRAIT_MINING'] ?>
+										</a>
+									</li>
+									<?php
+								}
 								?>
 								<li>
-									<a href="#" onclick="$('li.traitItem').show(); return false;">
-										<?= $LANG['TRAIT_CODING_TOOLS'] ?>
-									</a>
-								</li>
-								<li class="traitItem" style="margin-left:10px;display:none;">
-									<a href="../traitattr/occurattributes.php?collid=<?= $collid ?>">
-										<?= $LANG['TRAIT_CODING'] ?>
-									</a>
-								</li>
-								<li class="traitItem" style="margin-left:10px;display:none;">
-									<a href="../traitattr/attributemining.php?collid=<?= $collid ?>">
-										<?= $LANG['TRAIT_MINING'] ?>
+									<a href="../georef/batchgeoreftool.php?collid=<?= $collid ?>">
+										<?= $LANG['BATCH_GEOREF'] ?>
 									</a>
 								</li>
 								<?php
 							}
-							?>
-							<li>
-								<a href="../georef/batchgeoreftool.php?collid=<?= $collid ?>">
-									<?= $LANG['BATCH_GEOREF'] ?>
-								</a>
-							</li>
-							<?php
 							if ($collData['colltype'] == 'Preserved Specimens') {
 								?>
 								<li>
@@ -455,40 +488,21 @@ $barcode = $occManager->getBarcode($firstIndex);
 										<?= $LANG['EDIT_META'] ?>
 									</a>
 								</li>
-								<!--
-								<li>
-									<a href="" onclick="$('li.metadataItem').show(); return false;"  >
-										<?= $LANG['OPEN_META'] ?>
-									</a>
-								</li>
-								<li class="metadataItem" style="margin-left:10px;display:none;">
-									<a href="collmetadata.php?collid=<?= $collid ?>">
-										<?= $LANG['EDIT_META'] ?>
-									</a>
-								</li>
-								<li class="metadataItem" style="margin-left:10px;display:none;">
-									<a href="colladdress.php?collid=<?= $collid ?>">
-										<?= $LANG['EDIT_ADDRESS'] ?>
-									</a>
-								</li>
-								<li class="metadataItem" style="margin-left:10px;display:none;">
-									<a href="collproperties.php?collid=<?= $collid ?>">
-										<?= $LANG['EDIT_COLL_PROPS'] ?>
-									</a>
-								</li>
-								 -->
 								<li>
 									<a href="collpermissions.php?collid=<?= $collid ?>">
 										<?= $LANG['MANAGE_PERMISSIONS'] ?>
 									</a>
 								</li>
 								<li>
-									<a href="#" onclick="$('li.importItem').show(); return false;">
+									<a href="javascript:void(0)" onclick="showItemsList('importItem')">
 										<?= $LANG['IMPORT_SPECIMEN'] ?>
 									</a>
-									<a id="importinfo" href="https://biokic.github.io/symbiota-docs/coll_manager/upload/" title="<?php echo $LANG['MORE_INFO']; ?>" aria-label="<?php echo $LANG['MORE_INFO']; ?>">
+									<a id="importinfo" class="link-icon" href="https://docs.symbiota.org/Collection_Manager_Guide/Importing_Uploading/" target="_blank" title="<?php echo $LANG['MORE_INFO']; ?>" aria-label="<?php echo $LANG['MORE_INFO']; ?>">
 											<img src="../../images/info.png" style="width:13px;" alt="<?= $LANG['INFO_ALT'] ?>" />
-									</a><br/>
+									</a>
+									<a onclick="showItemsList('importItem')">
+										<img class="seemore-icon" src="../../images/tochild.png"">
+									</a>
 								</li>
 								<li class="importItem">
 									<a href="../admin/specupload.php?uploadtype=7&collid=<?php echo $collid; ?>">
@@ -632,9 +646,11 @@ $barcode = $occManager->getBarcode($firstIndex);
 				</div>
 				<?php
 			}
+			if(isset($collData['fulldescription'])){
 			?>
-			<div class="coll-description bottom-breathing-room-rel"><?= $collData['fulldescription'] ?></div>
+				<div class="coll-description bottom-breathing-room-rel"><?= $collData['fulldescription'] ?></div>
 			<?php
+			}
 			if(isset($collData['resourcejson'])){
 				if($resourceArr = json_decode($collData['resourcejson'], true)){
 					$title = $LANG['HOMEPAGE'];
@@ -653,7 +669,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 					if(!empty($contactArr)){
 						?>
 						<section style="margin-left: 0;">
-							<h1><span><?= $LANG['CONTACT'] ?>: </span></h1>
+							<h2><span><?= $LANG['CONTACT'] ?>: </span></h2>
 							<ul>
 								<?php
 								foreach($contactArr as $cArr){
@@ -839,11 +855,17 @@ $barcode = $occManager->getBarcode($firstIndex);
 							}
 							?>
 						</div>
+						<?php if($collData['managementtype'] == 'Live Data'): ?>
+							<div class="bottom-breathing-room-rel">
+								<span class="label"><?= $LANG['LAST_MODIFIED'] ?>:</span>
+								<?= $statsArr['datelastmodified'] ?>
+							</div>
+						<?php endif ?>
 						<?php if($collData['managementtype'] != 'Live Data'): ?>
-						<div class="bottom-breathing-room-rel">
-							<span class="label"><?= $LANG['LAST_UPDATE'] ?>:</span>
-							<?= $collData['uploaddate'] ?>
-						</div>
+							<div class="bottom-breathing-room-rel">
+								<span class="label"><?= $LANG['LAST_UPDATE'] ?>:</span>
+								<?= $collData['uploaddate'] ?>
+							</div>
 						<?php endif ?>
 						<?php
 						if($collData['managementtype'] == 'Live Data'){
@@ -867,6 +889,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 						</div>
 						<?php
 						if($collData['managementtype'] == 'Live Data'){
+							/*  In abundance of cautions, temporarily removing access of this option, with potential full removal in future
 							if($GLOBALS['SYMB_UID']){
 								?>
 								<div class="bottom-breathing-room-rel">
@@ -875,6 +898,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 								</div>
 								<?php
 							}
+							*/
 						}
 						elseif($collData['managementtype'] == 'Snapshot'){
 							if($pathArr = $collManager->getDwcaPath($collid)){
@@ -896,7 +920,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 							$rightsHtml = GeneralUtil::getRightsHtml($collData['rights']);
 							?>
 							<div class="bottom-breathing-room-rel">
-								<span class="label"><?= $LANG['USAGE_RIGHTS'] ?>:</span>
+								<span class="label"><?= $LANG['LICENSE'] ?>:</span>
 								<?= $rightsHtml ?>
 							</div>
 							<?php
@@ -938,7 +962,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 			}
 			?>
 			<div style="margin-bottom: 2rem;">
-				<form name="coll-search-form" action="<?= $actionPage ?>" method="get">
+				<form id="coll-search-form" name="coll-search-form" action="<?= $actionPage ?>" method="get" onsubmit="submitAdvancedSearchForm(event, '<?= $actionPage ?>')">
 					<input name="db" value="<?= $collid ?>" type="hidden">
 					<button type="submit" class="button button-primary">
 						<?= $LANG['ADVANCED_SEARCH_THIS_COLLECTION'] ?>
@@ -1020,7 +1044,7 @@ $barcode = $occManager->getBarcode($firstIndex);
 										if(!empty($contactArr)){
 											?>
 											<section style="margin-left: 0;">
-												<h1 style="font: 1.5rem normal;"><span><?= $LANG['CONTACT'] ?>: </span></h1>
+												<h4><span><?= $LANG['CONTACT'] ?>: </span></h4>
 												<ul>
 													<?php
 													foreach($contactArr as $cArr){

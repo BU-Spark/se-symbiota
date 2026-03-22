@@ -81,7 +81,7 @@ $LANG['INCLUDE_IMGS'] = 'Inclure les URL multimédia';
 $LANG['INCLUDE_ATTRIBUTES'] = 'Incluir atributos de rasgos de ocurrencia';
 $LANG['INCLUDE_MATSAMPLE'] = "Inclure les attributs des traits d'occurrence";
 $LANG['INCLUDE_IDENTIFIERS'] = 'Inclure les Identifiants Alternatifs';
-$LANG['REDACT_LOC'] = 'Supprimer Localités Sensibles';
+$LANG['REDACT_REC'] = 'Rédiger Échantillons/Localités Protégés';
 $LANG['CREATE_REFRESH'] = 'Créer/Actualiser Archive Darwin Core';
 $LANG['NOTE_LACKING_EXCLUDED'] = 'REMARQUE: tous les enregistrements dépourvus de GUID occurrenceID seront exclus';
 $LANG['SEL_DESEL_ALL'] = 'Tout Sélectionner/Désélectionner';
@@ -94,4 +94,5 @@ $LANG['METADATA'] = 'Métadonnées';
 $LANG['NO_PUBLISHABLE'] = 'Il n\'y a pas de collections publiables';
 $LANG['ADDIT_SOURCES'] = 'Sources de données supplémentaires au sein du Réseau de Portails';
 $LANG['EDIT'] = 'Modifier';
+$LANG['INCLUDE_ASSOCIATIONS'] = 'Inclure les Relations entre Ressources (associations et ressources liées)';
 
