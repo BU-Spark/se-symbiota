@@ -3,7 +3,7 @@ if($LANG_TAG != 'en' && file_exists($SERVER_ROOT.'/content/lang/collections/edit
 else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgprocessor.en.php');
 ?>
 	
-<script src="../../js/symb/collections.editor.imgtools.js?ver=3" type="text/javascript"></script>
+<script src="../../js/symb/collections.editor.imgtools.js?ver=4" type="text/javascript"></script>
 <link rel="stylesheet" href="../../css/symbiota/quickentry.css" type="text/css">
 <style>
 	.ocr-box{ padding: 5px; float:left; }
@@ -20,21 +20,39 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 				<div id="draggableImgDiv" style="float:left" title="<?php echo $LANG['MAKE_DRAGGABLE']; ?>"><a href="#" onclick="draggableImgPanel()"><img src="../../images/draggable.png" style="width:15px" /></a></div>
 				<div id="anchorImgDiv" style="float:left;margin-left:10px;display:none" title="<?php echo $LANG['ANCHOR_IMG']; ?>"><a href="#" onclick="anchorImgPanel()"><img src="../../images/anchor.png" style="width:15px" /></a></div>
 			</div>
-			<div style="float:left;;padding-right:10px;margin:2px 20px 0px 0px;"><?php echo $LANG['ROTATE']; ?>: <a href="#" onclick="rotateImage(-90)">&nbsp;L&nbsp;</a> &lt;&gt; <a href="#" onclick="rotateImage(90)">&nbsp;R&nbsp;</a></div>
+			<div style="float:left;;padding-right:10px;margin:2px 20px 0px 0px;"><?php echo $LANG['ROTATE']; ?>: <a href="#" onclick="rotateImage(-90, <?php echo $currentImageId; ?>); return false;">&nbsp;L&nbsp;</a> &lt;&gt; <a href="#" onclick="rotateImage(90, <?php echo $currentImageId; ?>); return false;">&nbsp;R&nbsp;</a></div>
 		</div>
 		<div id="labelprocessingdiv" style="clear:both;">
-			<?php 
-			$currentImageId = 0; 
-			if(!isset($notesValue)) $notesValue = '';
-			?>
 			<div id="labeldiv-<?php echo $currentImageId; ?>">
-				<div> 
-					<img id="activeimg-<?php echo $currentImageId; ?>" src="<?php echo($imgUrlCollection[$currentImageId]) ?>" style="height:400px;" onload="initImageTool('activeimg-<?php echo $currentImageId; ?>')" />
+				<div>
+					<?php 
+					$currentImageUrl = isset($imgUrlCollection[$currentImageId]) ? $imgUrlCollection[$currentImageId] : '';
+					if (empty($currentImageUrl) && !empty($imgArr)) {
+						foreach ($imgArr as $img) {
+							if ($img['imgid'] == $currentImageId) {
+								$currentImageUrl = $img['web'];
+								break;
+							}
+						}
+					}
+					?>
+					<img id="activeimg-<?php echo $currentImageId; ?>" src="<?php echo htmlspecialchars($currentImageUrl); ?>" style="height:400px;" onload="initImageTool('activeimg-<?php echo $currentImageId; ?>')" />
 				</div>
 				<div style="width:100%; clear:both;">
 					<div style="float:right; margin-right:20px; font-weight:bold;">
 						<span id="current-image-index" style="display:none;"><?php echo $currentImageId; ?></span>
-						<span id="image-count">Image <?php echo ($currentImageId + 1); ?> of <?php echo count($imgUrlCollection); ?></span>
+						<?php 
+						$currentIndex = 1;
+						if (!empty($imgArr)) {
+							foreach ($imgArr as $index => $img) {
+								if ($img['imgid'] == $currentImageId) {
+									$currentIndex = $index;
+									break;
+								}
+							}
+						}
+						?>
+						<span id="image-count">Image <?php echo $currentIndex; ?> of <?php echo count($imgUrlCollection); ?></span>
 						<?php if(count($imgUrlCollection) > 1): ?>
 							<input type="hidden" id="image-collection-input" value='<?php echo json_encode($imgUrlCollection); ?>'>
 							<a href="#" onclick="return nextProcessingImage();">>&gt;</a>
@@ -46,8 +64,19 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 						Choose your OCR model
 					</h4>
 					<fieldset class="" style="text-align:left; margin-bottom:15px">
-						<div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
-							<!-- Select OCR Model Dropdown here -->
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+							<div>
+								<label for="ocr-method">Select OCR Method:</label>
+								<select name="ocr-method" id="ocr-method">
+									<?php
+										$default = "tesseract";
+										foreach ($availalbe_OCR as $key => $label) {
+											$selected = ($key === $default) ? "selected" : "";
+											echo "<option value=\"$key\" $selected>$label</option>\n";
+										}
+									?>
+								</select>
+							</div>
 							<div>
 								<label>
 									<input type="checkbox" id="ocr-full" value="1" />
@@ -75,6 +104,7 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 				</div>
 				<div style="width:100%;clear:both;">
 					<div id="QEtfadddiv-<?php echo $currentImageId; ?>" style="">
+						<!-- save TODO: need to update this correctly -->
 						<form id="ocrform" name="ocrform" action="occurrencequickentry.php" method="post" onsubmit="return verifyFullForm(this);">
 							<div>
 								<textarea id="rawtext" name="rawtext" rows="12" cols="48" style="width:97%;background-color:#F8F8F8;"><?php echo $notesValue; ?></textarea>
@@ -95,7 +125,7 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 								<input type="hidden" name="csmode" value="<?php echo $crowdSourceMode; ?>" />
 								<input type="hidden" name="batchid" value="<?php echo $batchId; ?>" />
 								<input type="hidden" name="imgindex" value="<?php echo $currentImgIndex; ?>" />
-								<input type="hidden" name="barcode" value="<?php echo $barcode; ?>" />
+								<input type="hidden" name="catalognumber" value="<?php echo $barcode; ?>" />
 								<button id="updateButton" name="updateForm" name="updateForm" value="Validate" onclick="return handleUpdateButtonClick()" style="margin-top:10px;"><?php echo ("Validate"); ?></button>
 								<button id="SaveOCRButton" name="saveOCR" value="SaveOCR"  style="margin-top:10px;" onclick="return saveOCRResults()"><?php echo $LANG['SAVE_OCR']; ?></button>
 							</div>

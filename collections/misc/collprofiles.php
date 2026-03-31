@@ -405,6 +405,12 @@ $barcode = $occManager->getBarcode($firstIndex);
 								<?= $LANG['QUICK_ENTRY_FORM'] ?>
 							</a>
 						</li>
+						<!-- add a bullet point to link to the image batch -->
+						<li>
+							<a href="../quickentry/transcribe.php?collid=<?php echo $collid;?>">
+								<?php echo (isset($LANG['IMAGE_BATCH']) ? $LANG['IMAGE_BATCH'] : 'Image Transcription Quick Entry'); ?>
+							</a>
+						</li>
 						<?php
 						if ($collData['colltype'] != 'General Observations') {
 							?>
