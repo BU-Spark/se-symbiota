@@ -88,7 +88,6 @@ $LANG['SYMBDOCU'] = 'Documentation Symbiote';
 $LANG['FORMOREINFO'] = 'pour plus d\'informations sur les capacités de traitement des échantillons. A noter que les projets d\'observation ne sont pas activés sur tous les portails de données Symbiota';
 $LANG['OIVS'] = 'Soumission d’un bon multimédia d’observation';
 $LANG['NOOBSPROJ'] = 'Il n\'y a pas de Projets d\'Observation pour lesquels vous avez des autorisations';
-$LANG['PERSONAL'] = 'Fonctions de Gestion des Échantillons Personnels et d\'Impression d\'Étiquettes';
 $LANG['OPM'] = 'Gestion de Projet d\'Observation';
 $LANG['PLEASE'] = 'S\'il te plaît';
 $LANG['LOGIN'] = 'vous connecter';
@@ -98,7 +97,7 @@ $LANG['ABOUT'] = 'À Propos de Symbiota';
 $LANG['CODE'] = 'Version du Dodes';
 $LANG['SCHEMA'] = 'Version du Schéma';
 $LANG['AUTHO'] = 'Vous êtes autorisé à accéder au';
-$LANG['SYN_COM'] = 'Modifier Synonymes / Noms Communs';
+$LANG['VERNAC_COM'] = 'Modifier Noms Vernaculaires/Communs';
 $LANG['TEXTDESC'] = 'Modifier Descriptions Textuelles';
 $LANG['EDITIMG'] = 'Modifier le multimédia';
 $LANG['IMGSORTORD'] = 'Modifier l\'ordre de tri multimédia';
@@ -109,5 +108,6 @@ $LANG['DATMANPAG'] = 'Page de Gestion des Ensembles de Données';
 $LANG['DATA_AUTHORIZED_TO_EDIT'] = 'ensembles de données que vous êtes autorisé à modifier';
 $LANG['MANAGE_TAXON_THUMBNAILS'] = 'Gérer les miniatures de la carte du profil de taxonomie';
 $LANG['TAXINTER'] = 'Autorisations des Utilisateurs d\'Intérêt Taxonomique';
+$LANG['OTHER_CAT_TRANSFER'] = 'Outil de transfert de numéro de catalogue autre';
 
 ?>

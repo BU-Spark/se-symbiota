@@ -65,11 +65,11 @@ function setPortXY(portWidth,portHeight){
 	document.cookie = "symbimgport=" + portWidth + ":" + portHeight;
 }
 
-function initImgRes(){
+function initImgRes() {
 	var imgObj = document.getElementById("activeimg-"+activeImgIndex);
 	if(imgObj){
 		if(imgLgArr[activeImgIndex]){
-			var imgRes = getCookie("symbimgres");
+			var imgRes = getImgRes(); 
 			if(imgRes == 'lg') changeImgRes('lg');
 		}
 		else{
@@ -113,25 +113,44 @@ function changeImgRes(resType){
 	}
 }
 
-function rotateImage(rotationAngle){
-	var imgObj = document.getElementById("activeimg-"+activeImgIndex);
+function rotateImage(rotationAngle, imgIndex){
+	if(typeof imgIndex === 'undefined') {
+		imgIndex = activeImgIndex;
+	}
+	
+	var imgObj = document.getElementById("activeimg-"+imgIndex);
+	if(!imgObj){
+		console.error("Image element not found: activeimg-" + imgIndex);
+		return;
+	}
+	
 	var imgAngle = 0;
 	if(imgObj.style.transform){
 		var transformValue = imgObj.style.transform;
-		imgAngle = parseInt(transformValue.substring(7));
+		var match = transformValue.match(/rotate\((-?\d+)deg\)/);
+		if(match){
+			imgAngle = parseInt(match[1]);
+		}
 	}
+	
 	imgAngle = imgAngle + rotationAngle;
 	if(imgAngle < 0) imgAngle = 360 + imgAngle;
-	else if(imgAngle == 360) imgAngle = 0;
+	else if(imgAngle >= 360) imgAngle = imgAngle % 360;
+	
 	imgObj.style.transform = "rotate("+imgAngle+"deg)";
-	$(imgObj).imagetool("option","rotationAngle",imgAngle);
-	$(imgObj).imagetool("reset");
+	
+	if(typeof $ !== 'undefined' && $(imgObj).data('imagetool')){
+		$(imgObj).imagetool("option","rotationAngle",imgAngle);
+		$(imgObj).imagetool("reset");
+	}
 }
 
 function ocrImage(ocrButton, target, imgidVar, imgCnt){
 	ocrButton.disabled = true;
 	let wcElem = document.getElementById("workingcircle-"+target+"-"+imgCnt);
-	wcElem.style.display = "inline";
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 	
 	let imgObj = document.getElementById("activeimg-"+imgCnt);
 	let xVar = 0;
@@ -172,13 +191,252 @@ function ocrImage(ocrButton, target, imgidVar, imgCnt){
 		else target = "Digi-Leap";
 		addform.rawsource.value = target+": "+yyyy+"-"+mm+"-"+dd;
 		
-		wcElem.style.display = "none";
+		if (wcElem) {
+			wcElem.style.display = "none";
+		}
 		ocrButton.disabled = false;
 	});
 }
 
+// Function to run OCR via Vouchervision-Go API
+async function ocrVV(ocrButton, imgCnt){
+
+	// Get the busy indicator and image url
+	const busy = $('#workingcircle-vv-' + imgCnt);
+	const imgurl = $('#activeimg-' + imgCnt).attr('src');
+
+	// Get user-selected parameters
+	const prompt = $('#prompt').val();
+	const llm_model = $('#llm-model').val();
+    const engines = [];
+    $('input[name="engines"]:checked').each(function() {
+        engines.push($(this).attr('id'));
+    });
+    const ocrOnly = $('#ocrOnly').is(':checked');
+
+    // Show busy indicator
+    busy.show();
+
+    // Disable additional OCR Image button presses
+    $(ocrButton).prop('disabled', true);
+
+    // Symbiota field mappings for data returned by various prompts
+	const vvMapping = {
+		SLTPvM_default: {
+			// James Note: Catch-all field: Turning this off may be preferred, it accumulates a lot of junk.
+			additionalText: "occurrenceremarks",
+			// James Note: I think this is currently a bit shaky for an important field
+			//catalogNumber: "catalognumber",
+			collectedBy: "recordedby",
+			collectionDate: "eventdate",
+			collectionDateEnd: "eventdate2",
+			collectorNumber: "recordnumber",
+			continent: "continent",
+			country: "country",
+			county: "county",
+			cultivated: "cultivationstatus", // checkbox
+			// James Note: decimal lat/long can sometimes be hallucinated,
+			// incorrectly derived from locality,
+			// or improperly converted from other coordinates
+			decimalLatitude: "decimallatitude",
+			decimalLongitude: "decimallongitude",
+			//elevationUnits: "",
+			//genus: "",
+			habitat: "habitat",
+			//identificationHistory: "",
+			identifiedBy: "identifiedby",
+			identifiedConfidence: "identificationqualifier",
+			identifiedDate: "dateidentified",
+			identifiedRemarks: "identificationremarks",
+			locality: "locality",
+			maximumElevationInMeters: "maximumelevationinmeters",
+			minimumElevationInMeters: "minimumelevationinmeters",
+			scientificName: "sciname",
+			scientificNameAuthorship: "scientificnameauthorship",
+			//specificEpithet: "",
+			specimenDescription: "verbatimattributes",
+			stateProvince: "stateprovince",
+			verbatimCollectionDate: "verbatimeventdate",
+			verbatimCoordinates: "verbatimcoordinates"
+		},
+		OSC_Symbiota: {
+			// James Note: I think this is currently a bit shaky for an important field
+			//catalogNumber: "catalognumber",
+			collector: "recordedby",
+			associatedCollectors: "associatedcollectors",
+			collectorNumber: "recordnumber",
+			verbatimCollectionDate: "verbatimeventdate",
+			collectionDate: "eventdate",
+			scientificName: "sciname",
+			scientificNameAuthorship: "scientificnameauthorship",
+			family: "family",
+			// James Note: Asking for genus, specific epithet and infra-epithet and
+			// constructing a scientific name with that was more reliable than the
+			// scientific name returned by Vouchervision for Gemini 1.5 Flash at least
+			// Tendency for the full scientific name to include authors
+			//genus: "",
+			//specificEpithet: "",
+			//infraspecificEpithet: "",
+			identifiedBy: "identifiedby",
+			identifiedConfidence: "identificationqualifier",
+			identifiedDate: "dateidentified",
+			identifiedRemarks: "identificationremarks",
+			continent: "continent",
+			country: "country",
+			stateProvince: "stateprovince",
+			county: "county",
+			locality: "locality",
+			// James Note: decimal lat/long can sometimes be hallucinated,
+			// incorrectly derived from locality,
+			// or improperly converted from other coordinates
+			decimalLatitude: "decimallatitude",
+			decimalLongitude: "decimallongitude",
+			verbatimCoordinates: "verbatimcoordinates",
+			datum: "geodeticdatum",
+			verbatimElevation: "verbatimelevation",
+			cultivated: "cultivationstatus",
+			habitat: "habitat",
+			specimenDescription: "verbatimattributes",
+			associatedSpecies: "associatedtaxa",
+			// James Note: Catch-all field: Turning this off may be preferred
+			additionalText: "occurrenceremarks",
+		}
+	}
+
+	// Construct a data object with parameters to pass to the API
+	const vvData = {
+		image_url: imgurl,
+		engines: engines,
+		prompt: prompt + '.yaml',
+		llm_model: llm_model,
+		ocr_only: ocrOnly
+	};
+
+	// Start a timer to check how long the API call took
+	var start = Date.now();
+
+    // Send the request to VoucherVision-Go
+	$.ajax({
+		type: 'POST',
+		url: 'rpc/voucherVisionGo.php',
+		data: JSON.stringify(vvData),
+		dataType: 'json',
+		contentType: 'application/json',
+		success: function (data) {
+
+			// Object to store the costs
+			let cost = {"ocr": 0, "transcription": 0, "total": 0};
+
+			// Get transcription cost
+			cost.transcription = data.parsing_info.cost_in + data.parsing_info.cost_out;
+
+			// Get OCR cost
+			Object.keys(data.ocr_info).forEach(key => {
+				cost.ocr += data.ocr_info[key].cost_in + data.ocr_info[key].cost_out;
+			});
+
+			// Calculate the total cost
+			cost.total = cost.transcription + cost.ocr;
+
+			// Format the cost as a currency string
+			let costStr = new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD',
+				minimumFractionDigits: 6}).format(cost.total);
+
+			// Write out message on success, along with the time, cost, and returned data object
+			console.log('VoucherVision-Go returned data after ' + ((Date.now() - start)/1000).toFixed(2) +
+				' seconds. Total cost: ' + costStr + '\n', data);
+
+			// Get the OCR text
+			let ocr = data.ocr;
+
+			// Hide the edit div (existing content), and show the add div for new OCR content
+			$('#tfeditdiv-' + imgCnt).hide();
+			$('#tfadddiv-' + imgCnt).show();
+
+			// Add OCR data to the editor
+			$('#tfadddiv-' + imgCnt + ' textarea[name="rawtext"]').val(ocr);
+
+			// Construct the OCR source string
+			// Add the date
+			let today = new Date();
+			// Add leading zeros to day and month
+			let dd = String(today.getDate()).padStart(2, '0');
+			let mm = String(today.getMonth()+1).padStart(2, '0'); //January is 0!
+			let yyyy = today.getFullYear();
+
+			// Add Vouchervision-Go, the date, and the OCR/Transcription models to the source string
+			let sourceStr = 'Vouchervision-Go: ' + yyyy + '-' + mm + '-' + dd;
+			sourceStr += '; OCR Model(s): ' + engines.join("+");
+			sourceStr += '; Transcription Model: ' + llm_model + "; Prompt: " + prompt;
+
+			// Put the source string in the OCR source field
+			$('input[name="rawsource"]').val(sourceStr);
+
+			// If not just OCRing, add the data to the editor using the field mappings
+			if(!ocrOnly){
+
+				// Get the categorized data
+				let json = data.formatted_json;
+
+				// Color to highlight the form fields that have been changed by Vouchervision-Go
+				let vvColor = 'moccasin';
+
+				// Make sure there is data returned before proceeding
+				if(json){
+					// Cycle through all the fields in the field mapping object for the given prompt
+					for (const [field, mapping] of Object.entries(vvMapping[prompt])) {
+
+						// Get the edit form element
+						const elem = $('[name="' + mapping + '"]');
+
+						// First modify cultivationstatus if needed, this is a checkbox. Save status if the element is not disabled
+						if(json[field] && mapping == "cultivationstatus" && !elem.prop('disabled')) {
+
+							// Set cultivation status and highlight the checkbox
+							elem.prop('checked', true);
+							elem.css({"accent-color": vvColor, "box-shadow": "0 0 2px 1px gray"});
+
+							// Trigger a fieldChanged event
+							fieldChanged(mapping);
+
+						// For the rest of the fields, avoid saving data into disabled, hidden, or non-empty elements
+						} else if (json[field] && !elem.prop('disabled') && elem.attr('type') != 'hidden' && elem.val() === '') {
+
+							// Save data returned from VoucherVision to the mapped form element and highlight the form element
+							elem.val(json[field]);
+							elem.css('background-color', vvColor);
+
+							// Trigger a fieldChanged event
+							fieldChanged(mapping);
+
+						}
+					}
+				}
+			}
+
+			// Stop the busy indicator, and re-enable OCR button
+			busy.hide();
+			$(ocrButton).prop('disabled', false);
+		},
+		error: function(xhr, status, error) {
+			// Failed to get data back from the Vouchervision-Go API
+			console.log("Failed to get an OCR response from Vouchervision-Go", xhr, status, error);
+			alert("Failed to get an OCR response from Vouchervision-Go");
+
+			// Stop busy indicator, and re-enable OCR button
+			busy.hide();
+			$(ocrButton).prop('disabled', false);
+		}
+	});
+}
+
+
+
 function nlpLbcc(nlpButton,prlid){
-	document.getElementById("workingcircle_lbcc-"+prlid).style.display = "inline";
+	let wcElem = document.getElementById("workingcircle_lbcc-"+prlid);
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 	nlpButton.disabled = true;
 	var f = nlpButton.form;
 	var rawOcr = f.rawtext.innerText;
@@ -193,12 +451,18 @@ function nlpLbcc(nlpButton,prlid){
 	}).done(function( msg ) {
 		pushDwcArrToForm(msg, "#ebbb7f");
 		nlpButton.disabled = false;
-		document.getElementById("workingcircle_lbcc-"+prlid).style.display = "none";
+		let wcElem = document.getElementById("workingcircle_lbcc-"+prlid);
+		if (wcElem) {
+			wcElem.style.display = "none";
+		}
 	});
 }
 
 function nlpSalix(nlpButton,prlid){
-	document.getElementById("workingcircle_salix-"+prlid).style.display = "inline";
+	let wcElem = document.getElementById("workingcircle_salix-"+prlid);
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 	nlpButton.disabled = true;
 	var f = nlpButton.form;
 	var rawOcr = f.rawtext.innerText;
@@ -211,7 +475,10 @@ function nlpSalix(nlpButton,prlid){
 	}).done(function( msg ) {
 		pushDwcArrToForm(msg,"#77dd77");
 		nlpButton.disabled = false;
-		document.getElementById("workingcircle_salix-"+prlid).style.display = "none";
+		let wcElem = document.getElementById("workingcircle_salix-"+prlid);
+		if (wcElem) {
+			wcElem.style.display = "none";
+		}
 	});
 }
 
@@ -259,6 +526,11 @@ function pushDwcArrToForm(msg,bgColor){
 	
 }
 
+function getImgRes() {
+	const resRadio = document.querySelector('#imgres input[name="resradio"]:checked');
+	return resRadio? resRadio.value: getCookie("symbimgres");
+}
+
 function nextLabelProcessingImage(imgCnt){
 	document.getElementById("labeldiv-"+(imgCnt-1)).style.display = "none";
 	var imgObj = document.getElementById("labeldiv-"+imgCnt);
@@ -268,8 +540,9 @@ function nextLabelProcessingImage(imgCnt){
 	}
 	imgObj.style.display = "block";
 	
-	initImageTool("activeimg-"+imgCnt);
 	activeImgIndex = imgCnt;
+	initImageTool("activeimg-"+imgCnt);
+	initImgRes()
 	
 	return false;
 }
@@ -291,10 +564,13 @@ function quickEntryOcrImage(ocrButton, imgidVar, imgCnt, imgURl) {
 
 	// Show loading spinner
 	let wcElem = document.getElementById("workingcircle-tess-" + imgCnt);
-	wcElem.style.display = "inline";
+	if (wcElem) {
+		wcElem.style.display = "inline";
+	}
 
 	// Get selected OCR 
 	let target = document.getElementById("ocr-method").value;
+	ocrAnalysisMode = !!(document.getElementById("ocr-analysis") && document.getElementById("ocr-analysis").checked);
 
 	let ocrUrl = "";
 	if (target === "external") {
@@ -331,6 +607,10 @@ function quickEntryOcrImage(ocrButton, imgidVar, imgCnt, imgURl) {
 				plainTextResponse = decodedResponse;
 			}
 
+			if(ocrAnalysisMode){
+				plainTextResponse = normalizeFieldValueText(plainTextResponse);
+			}
+
 			// Store in global variable for later use
 			storedOcrResponse = plainTextResponse;
 
@@ -338,21 +618,117 @@ function quickEntryOcrImage(ocrButton, imgidVar, imgCnt, imgURl) {
 			let rawtextBox = document.getElementById("rawtext");
 			rawtextBox.value = plainTextResponse;
 
-			wcElem.style.display = "none";
+			if (wcElem) {
+				wcElem.style.display = "none";
+			}
 			ocrButton.disabled = false;
 		},
 		error: function(xhr, status, error) {
 			storedOcrResponse = "OCR Failed";
 			console.error("External OCR Error: ", error);
-			wcElem.style.display = "none";
+			if (wcElem) {
+				wcElem.style.display = "none";
+			}
 			ocrButton.disabled = false;
 		}
 	});
 }
 
 let storedOcrResponse = "";
-// this state variable used to check the state of the textBox, either "needsValidation" or "ready" to populate the fieldss
 let updateState = "needsValidation";  
+let ocrAnalysisMode = false;
+
+function normalizeFieldValueText(rawText){
+	if(!rawText) return "";
+	const normalized = [];
+	const lines = rawText.split(/\r?\n/);
+	const barcodePattern = /^[A-Z]{1,3}\d{5,}$/i;
+	const institutionFallbackParts = [];
+	
+	const knownFields = ['recordedBy', 'location', 'scientificName', 'eventDate', 'barcode', 'institutionCode', 'image_path'];
+	
+	for(let i = 0; i < lines.length; i++){
+		let line = lines[i].trim();
+		if(!line) continue;
+
+		let colonIndex = line.indexOf(":");
+		let key = "";
+		let value = "";
+		
+		if(colonIndex === -1){
+			key = line;
+		} else {
+			key = line.slice(0, colonIndex).trim();
+			value = line.slice(colonIndex + 1).trim();
+		}
+
+		// Check if it's already a known field
+		if(knownFields.includes(key)){
+			normalized.push(`${key}: ${value}`);
+			continue;
+		}
+
+		// Check if key or value matches barcode pattern
+		const barcodeMatchInKey = barcodePattern.test(key);
+		const barcodeMatchInValue = barcodePattern.test(value);
+
+		if (barcodeMatchInKey && !value) {
+			normalized.push(`barcode: ${key}`);
+			continue;
+		}
+		else if (barcodeMatchInValue) {
+			normalized.push(`barcode: ${value.match(barcodePattern)[0]}`);
+			continue;
+		}
+
+		// If it has a colon and both key and value, keep it as-is for now
+		if(colonIndex !== -1 && key && value){
+			institutionFallbackParts.push(value);
+			continue;
+		}
+		
+		// Single word or phrase without clear key-value structure
+		const spaceIndex = line.indexOf(" ");
+		if(spaceIndex !== -1 && colonIndex === -1){
+			const firstWord = line.slice(0, spaceIndex).trim();
+			const rest = line.slice(spaceIndex + 1).trim();
+			if(firstWord && rest){
+				institutionFallbackParts.push(rest);
+				continue;
+			}
+		}
+
+		// Look ahead for a value on the next line
+		let valueLine = "";
+		let j = i + 1;
+		while(j < lines.length){
+			const nextLine = lines[j].trim();
+			if(nextLine){
+				valueLine = nextLine;
+				break;
+			}
+			j++;
+		}
+
+		if(valueLine){
+			institutionFallbackParts.push(valueLine);
+			i = j;
+		}
+		else if(key){
+			institutionFallbackParts.push(key);
+		}
+	}
+	
+	// Add institution code from fallback parts if we collected any
+	if(institutionFallbackParts.length > 0){
+		const institutionValue = institutionFallbackParts.join(" ").replace(/\s+/g, " ").trim();
+		if(institutionValue){
+			normalized.push(`institutionCode: ${institutionValue}`);
+		}
+	}
+	
+	return normalized.join("\n");
+}
 
 function handleUpdateButtonClick() {
 	if (updateState === "needsValidation") {
@@ -400,6 +776,15 @@ function confirmOCRresult() {
 		return false;
 	}
 
+	if(!ocrAnalysisMode){
+		storedOcrResponse = rawText;
+		console.log("OCR response confirmed (no analysis mode)");
+		return false;
+	}
+
+	rawText = normalizeFieldValueText(rawText);
+	rawtextBox.value = rawText;
+
 	let lines = rawText.split("\n");
 	let allValid = true;
 
@@ -407,17 +792,17 @@ function confirmOCRresult() {
 		line = line.trim();
 		if (line === "") return; // skip empty lines
 
-		// Check for colon separator
-		if (!line.includes(": ")) {
-			console.error(`Line ${index + 1} is invalid: missing ': ' separator.`);
-			alert(`Error: Line ${index + 1} is invalid. Missing ': ' separator.`);
+		const colonIndex = line.indexOf(":");
+		if (colonIndex === -1) {
+			console.error(`Line ${index + 1} is invalid: missing ':' separator.`);
+			alert(`Error: Line ${index + 1} is invalid. Missing ':' separator.`);
 			allValid = false;
 			return;
 		}
 
 		// Split key and value
-		let [key, ...valueParts] = line.split(": ");
-		let value = valueParts.join(": ").trim();
+		let key = line.slice(0, colonIndex).trim();
+		let value = line.slice(colonIndex + 1).trim();
 
 		// Check key and value are not empty
 		if (!key.trim() || !value) {
@@ -453,33 +838,62 @@ function UpdateFromWithOCR() {
 	}
 
 	let lines = storedOcrResponse.split("\n");
-	
+
+	const fieldGetters = {
+		recordedBy: () => document.getElementById("ffrecordedby"),
+		location: () => document.getElementById("ffgeowithin"),
+		scientificName: () => document.getElementById("ffcurrname"),
+		eventDate: () => document.getElementById("ffeventdate"),
+		barcode: () => document.getElementById("barcode"),
+		institutionCode: () => document.querySelector('input[name="institutioncode"]'),
+		image_path: () => document.getElementById("image-path") || document.querySelector('input[name="image_path"]') || document.querySelector('input[name="imgpath"]')
+	};
+
+	const barcodePattern = /^[A-Z]{1,3}\d{5,}$/i;
+	const institutionFallbackParts = [];
+	let institutionAssigned = false;
+
 	lines.forEach(line => {
 		if (line.trim() === "") return;
 
-		// Split key and value by ": "
-		let [key, ...valueParts] = line.split(": ");
-		let value = valueParts.join(": ").trim();
-		let field = null;
+		const colonIndex = line.indexOf(":");
+		let key = "";
+		let value = "";
 
-		if (key === 'recordedBy') {
-			field = document.getElementById("ffrecordedby");
-		} else if (key === 'location') {
-			field = document.getElementById("ffgeowithin");
-		} else if  (key === 'scientificName') {
-			field = document.getElementById("ffcurrname");
-		} else if  (key === 'eventDate') {
-			field = document.getElementById("ffeventdate");
-		} else if  (key === 'barcode') {
-			field = document.getElementById("barcode");
-		} else if  (key === 'institutionCode') {
-			field = document.getElementById("");
-		} else if  (key === 'image_path') {
-			field = document.getElementById("");
+		if (colonIndex === -1) {
+			key = line.trim();
 		} else {
-			console.warn(`Unrecognized key '${key}' in OCR response.`);
-			return;
+			key = line.slice(0, colonIndex).trim();
+			value = line.slice(colonIndex + 1).trim();
 		}
+
+		let normalizedKey = key;
+
+		if (!fieldGetters[normalizedKey]) {
+			const barcodeMatchInKey = barcodePattern.test(key);
+			const barcodeMatchInValue = barcodePattern.test(value);
+
+			if (barcodeMatchInKey && !value) {
+				normalizedKey = 'barcode';
+				value = key;
+			}
+			else if (barcodeMatchInValue) {
+				normalizedKey = 'barcode';
+				value = value.match(barcodePattern)[0];
+			}
+			else {
+				const fallbackTextSource = value || key;
+				const fallbackText = fallbackTextSource.trim();
+				if (fallbackText) {
+					institutionFallbackParts.push(fallbackText);
+				} else {
+					console.warn(`Unrecognized key '${key}' with empty value in OCR response.`);
+				}
+				return;
+			}
+		}
+
+		let field = fieldGetters[normalizedKey] ? fieldGetters[normalizedKey]() : null;
 
 		// Find the input field by key
 		if (field) {
@@ -487,16 +901,64 @@ function UpdateFromWithOCR() {
 			field.dispatchEvent(new Event("change"));
 
 			// Find the corresponding label and bold it
-			let fieldBlock = field.closest(".field-block");
+			let fieldBlock = field.closest(".field-block") || field.closest(".field-div");
 			if (fieldBlock) {
 				let label = fieldBlock.querySelector(".field-label");
 				if (label) {
 					label.classList.add("highlight-label");
 				}
 			}
+
+			if (normalizedKey === 'institutionCode') {
+				institutionAssigned = true;
+				// Update the institution code display at the top of the page
+				const displayElement = document.getElementById("institution-code-display");
+				if (displayElement) {
+					displayElement.textContent = value;
+				}
+			}
+		} else {
+			console.warn(`Unable to locate input field for key '${normalizedKey}'.`);
 		}
 	});
+
+	if (!institutionAssigned && institutionFallbackParts.length) {
+		const institutionField = fieldGetters['institutionCode'] ? fieldGetters['institutionCode']() : null;
+		const institutionValue = institutionFallbackParts.join(" ").replace(/\s+/g, " ").trim();
+		if (institutionField && institutionValue) {
+			institutionField.value = institutionValue;
+			institutionField.dispatchEvent(new Event("change"));
+			let fieldBlock = institutionField.closest(".field-block") || institutionField.closest(".field-div");
+			if (fieldBlock) {
+				let label = fieldBlock.querySelector(".field-label");
+				if (label) {
+					label.classList.add("highlight-label");
+				}
+			}
+			// Update the institution code display at the top of the page
+			const displayElement = document.getElementById("institution-code-display");
+			if (displayElement) {
+				displayElement.textContent = institutionValue;
+			}
+		}
+	}
+	
+	// Reset button state after successful update
+	const updateButton = document.getElementById("updateButton");
+	if (updateButton) {
+		updateState = "needsValidation";
+		updateButton.innerText = "Validate";
+		updateButton.value = "Validate";
+	}
+	
+	// Show success popup after form update
+	showFormUpdateSuccessPopup();
+	
 	return false;
+}
+
+function showFormUpdateSuccessPopup() {
+	alert("Form has been successfully validated and updated!");
 }
 
 function saveOCRResults() {
@@ -557,20 +1019,6 @@ $(function() {
 		$( "#zoomInfoDialog" ).dialog( "open" );
 	});
 });
-function rotateImage(rotationAngle){
-	var imgObj = document.getElementById("activeimg-0");
-	var imgAngle = 0;
-	if(imgObj.style.transform){
-		var transformValue = imgObj.style.transform;
-		imgAngle = parseInt(transformValue.substring(7));
-	}
-	imgAngle = imgAngle + rotationAngle;
-	if(imgAngle < 0) imgAngle = 360 + imgAngle;
-	else if(imgAngle == 360) imgAngle = 0;
-	imgObj.style.transform = "rotate("+imgAngle+"deg)";
-	$(imgObj).imagetool("option","rotationAngle",imgAngle);
-	$(imgObj).imagetool("reset");
-}
 
 function floatImgPanel(){
 	$( "#labelProcFieldset" ).css('position', 'fixed');
@@ -630,4 +1078,19 @@ function nextProcessingImage() {
 	};
 
 	return false;
+}
+
+function rotateImage(rotationAngle){
+	var imgObj = document.getElementById("activeimg-0");
+	var imgAngle = 0;
+	if(imgObj.style.transform){
+		var transformValue = imgObj.style.transform;
+		imgAngle = parseInt(transformValue.substring(7));
+	}
+	imgAngle = imgAngle + rotationAngle;
+	if(imgAngle < 0) imgAngle = 360 + imgAngle;
+	else if(imgAngle == 360) imgAngle = 0;
+	imgObj.style.transform = "rotate("+imgAngle+"deg)";
+	$(imgObj).imagetool("option","rotationAngle",imgAngle);
+	$(imgObj).imagetool("reset");
 }
