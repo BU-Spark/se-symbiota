@@ -2942,43 +2942,88 @@ class OccurrenceEditorManager {
 		return $this->occid;
 	}
 	
-	// For quick entry form
-	public function getImgIDs() {
+	/**
+	 * Quick entry / image batching: list media IDs for an optional ingest batch (batch_XREF) or all specimen images.
+	 * @param int|string|null $batchId batch_XREF.batchID, or null/empty for all images in media table
+	 */
+	public function getImgIDs($batchId = null) {
 		$imgIDs = array();
-		$query = "SELECT mediaId FROM media";
-		$result = $this->conn->query($query);
-		while ($row = $result->fetch_assoc()) {
-			$imgIDs[] = $row['mediaId'];
+		$batchId = is_numeric($batchId) ? (int)$batchId : null;
+		if ($batchId) {
+			foreach (array('mediaID', 'imgid') as $xrefCol) {
+				$sql = 'SELECT `' . $xrefCol . '` AS mid FROM batch_XREF WHERE batchID = ' . $batchId . ' ORDER BY ordinal ASC';
+				$result = $this->conn->query($sql);
+				if ($result) {
+					while ($row = $result->fetch_assoc()) {
+						$imgIDs[] = (int)$row['mid'];
+					}
+					$result->free();
+					break;
+				}
+			}
 		}
-		$result->free();
+		else {
+			$sql = 'SELECT mediaID FROM media WHERE (mediaType = \'image\' OR mediaType IS NULL) ORDER BY mediaID ASC';
+			$result = $this->conn->query($sql);
+			if ($result) {
+				while ($row = $result->fetch_assoc()) {
+					$imgIDs[] = (int)$row['mediaID'];
+				}
+				$result->free();
+			}
+		}
 		return $imgIDs;
 	}
-	
+
 	public function getBarcode($imgID) {
-		$query = "SELECT barcode FROM images_barcode WHERE mediaId = '$imgID' LIMIT 1";
-		$result = $this->conn->query($query);
-		if ($result && $row = $result->fetch_assoc()) {
-			$barcode = $row['barcode'];
-		} else {
-			$barcode = null; 
+		$occid = $this->getOneOccID($imgID);
+		$barcode = null;
+
+		if ($occid) {
+			$occid = (int)$occid;
+			$sql = 'SELECT catalogNumber FROM omoccurrences WHERE occid = ' . $occid . ' LIMIT 1';
+			$result = $this->conn->query($sql);
+			if ($result && $row = $result->fetch_assoc()) {
+				$barcode = $row['catalogNumber'];
+			}
+			if ($result) {
+				$result->free();
+			}
 		}
-		
-		$result->free();
+
 		return $barcode;
 	}
 
-	public function getOneOccID($imgId) {
-		$occid = false;
-		$query = "SELECT occid FROM media WHERE mediaId = '$imgId' LIMIT 1";
-		$result = $this->conn->query($query);
-
-		if ($result && $row = $result->fetch_assoc()) {
-			$occid = $row['occid'];
-		} else {
-			$occid = null;
+	// we use the notes column to store the OCR results temporarily. You should update this to the right column afterwards
+	public function getOCRResult($imgID) {
+		$notes = null;
+		if (is_numeric($imgID)) {
+			$mid = (int)$imgID;
+			$sql = 'SELECT notes FROM media WHERE mediaID = ' . $mid . ' LIMIT 1';
+			$result = $this->conn->query($sql);
+			if ($result && $row = $result->fetch_assoc()) {
+				$notes = $row['notes'];
+			}
+			if ($result) {
+				$result->free();
+			}
 		}
-		$result->free();
+		return $notes;
+	}
 
+	public function getOneOccID($imgId) {
+		$occid = null;
+		if (is_numeric($imgId)) {
+			$mid = (int)$imgId;
+			$sql = 'SELECT occid FROM media WHERE mediaID = ' . $mid . ' LIMIT 1';
+			$result = $this->conn->query($sql);
+			if ($result && $row = $result->fetch_assoc()) {
+				$occid = $row['occid'];
+			}
+			if ($result) {
+				$result->free();
+			}
+		}
 		return $occid;
 	}
 

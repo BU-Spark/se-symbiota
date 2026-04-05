@@ -20,14 +20,22 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 
 	public function getImgIndex($imgID) {
 		$imgIndex = false;
-		$query = "SELECT ordinal FROM batch_XREF WHERE imgid = '$imgID' LIMIT 1";
-		$result = $this->conn->query($query);
-
-		if ($result && $row = $result->fetch_assoc()) {
-			$imgIndex = $row['ordinal'];
+		if (!is_numeric($imgID)) {
+			return $imgIndex;
 		}
-		$result->free();
-
+		$mid = (int)$imgID;
+		foreach (array('mediaID', 'imgid') as $xrefCol) {
+			$sql = 'SELECT ordinal FROM batch_XREF WHERE `' . $xrefCol . '` = ' . $mid . ' LIMIT 1';
+			$result = $this->conn->query($sql);
+			if ($result && $row = $result->fetch_assoc()) {
+				$imgIndex = $row['ordinal'];
+				$result->free();
+				break;
+			}
+			if ($result) {
+				$result->free();
+			}
+		}
 		return $imgIndex;
 	}
 
