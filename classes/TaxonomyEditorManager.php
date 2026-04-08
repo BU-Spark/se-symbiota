@@ -2,9 +2,9 @@
 
 include_once($SERVER_ROOT.'/traits/TaxonomyTrait.php');
 include_once($SERVER_ROOT.'/classes/Manager.php');
-if($LANG_TAG == 'en' || !file_exists($SERVER_ROOT . '/content/lang/classes/TaxonomyEditorManager.' . $LANG_TAG . '.php'))
-	include_once($SERVER_ROOT . '/content/lang/classes/TaxonomyEditorManager.en.php');
-else include_once($SERVER_ROOT . '/content/lang/classes/TaxonomyEditorManager.' . $LANG_TAG . '.php');
+include_once($SERVER_ROOT . '/classes/utilities/Language.php');
+
+Language::load('classes/TaxonomyEditorManager');
 
 class TaxonomyEditorManager extends Manager{
 
@@ -264,9 +264,9 @@ class TaxonomyEditorManager extends Manager{
 		//If SecurityStatus was changed, set security status within omoccurrence table
 		if($postArr['securitystatus'] != $_REQUEST['securitystatusstart']){
 			if(is_numeric($postArr['securitystatus'])){
-				$sql2 = 'UPDATE omoccurrences SET localitysecurity = 0 WHERE (tidinterpreted = ?) AND (localitySecurityReason IS NULL)';
+				$sql2 = 'UPDATE omoccurrences SET recordSecurity = 0 WHERE (tidinterpreted = ?) AND (securityReason IS NULL)';
 				if($postArr['securitystatus']){
-					$sql2 = 'UPDATE omoccurrences SET localitysecurity = 1 WHERE (tidinterpreted = ?) AND (localitySecurityReason IS NULL) AND (cultivationStatus = 0 OR cultivationStatus IS NULL)';
+					$sql2 = 'UPDATE omoccurrences SET recordSecurity = 1 WHERE (tidinterpreted = ?) AND (securityReason IS NULL) AND (cultivationStatus = 0 OR cultivationStatus IS NULL)';
 				}
 				if($stmt = $this->conn->prepare($sql2)){
 					$stmt->bind_param('i', $this->tid);
@@ -612,7 +612,7 @@ class TaxonomyEditorManager extends Manager{
 			((array_key_exists('tradeName', $dataArr) && $dataArr['tradeName']) ? ('"' . $this->cleanInStr($processedTradeName) . '"') : '""') . ',' .
 			($dataArr['source']? '"'.$this->cleanInStr($dataArr['source']).'"':'NULL').','.
 			($dataArr['notes']?'"'.$this->cleanInStr($dataArr['notes']).'"':'NULL').','.
-			$this->cleanInStr($dataArr['securitystatus']).','.
+			($dataArr['securitystatus']? '"' . $this->cleanInStr($dataArr['securitystatus']) . '",' : '0,').
 			$GLOBALS['SYMB_UID'].',"'.
 			date('Y-m-d H:i:s').'")';
 		$insertStatus = false;
@@ -693,8 +693,8 @@ class TaxonomyEditorManager extends Manager{
 			if($dataArr['securitystatus'] == 1){
 				//Set locality security
 				$sqlUpdate2 = 'UPDATE omoccurrences o INNER JOIN taxa t ON o.sciname = t.sciname
-					SET o.localitysecurity = 1
-					WHERE (o.localitySecurityReason IS NULL) AND (cultivationStatus = 0 OR cultivationStatus IS NULL) AND (o.sciname = ?) ';
+					SET o.recordSecurity = 1
+					WHERE (o.securityReason IS NULL) AND (cultivationStatus = 0 OR cultivationStatus IS NULL) AND (o.sciname = ?) ';
 				if($stmt = $this->conn->prepare($sqlUpdate2)){
 					$stmt->bind_param('s', $dataArr["sciname"]);
 					$stmt->execute();
