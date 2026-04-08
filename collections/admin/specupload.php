@@ -173,7 +173,7 @@ include($SERVER_ROOT.'/includes/header.php');
 						<input name="collid" type="hidden" value="<?php echo $collid; ?>" />
 						<input name="uploadtype" type="hidden" value="<?php echo $uploadType; ?>" />
 						<!-- <input name="MAX_FILE_SIZE" type="hidden" value="100000000" /> -->
-						<input name="MAX_FILE_SIZE" type="hidden" value="250000000" />
+						<input name="MAX_FILE_SIZE" type="hidden" value="2147483648" />
 					</div>
 				</div>
 			</fieldset>
