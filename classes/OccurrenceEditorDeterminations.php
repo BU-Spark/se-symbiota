@@ -66,29 +66,8 @@ class OccurrenceEditorDeterminations extends OccurrenceEditorManager{
 		return $nameValues;
 	}
 
-	public function getImgIDs($batchID) {
-		$imgIDs = array();
-		$query = "SELECT imgid FROM batch_XREF WHERE batchID = '$batchID'";
-		$result = $this->conn->query($query);
-		while ($row = $result->fetch_assoc()) {
-			$imgIDs[] = $row['imgid'];
-		}
-		$result->free();
-		return $imgIDs;
-	}
-
-	public function getOneOccID($imgID) {
-		$occid = false;
-		$query = "SELECT occid FROM images WHERE imgid = '$imgID' LIMIT 1";
-		$result = $this->conn->query($query);
-
-		if ($result && $row = $result->fetch_assoc()) {
-			$occid = $row['occid'];
-		}
-		$result->free();
-
-		return $occid;
-	}
+	// getImgIDs() and getOneOccID() inherited from OccurrenceEditorManager (media table).
+	// Legacy overrides used images/batch_XREF(imgid) only and broke PHP 8 signature rules and 3.4+ schema.
 
 	public function getDetMap($identBy, $dateIdent, $sciName){
 		$retArr = array();
