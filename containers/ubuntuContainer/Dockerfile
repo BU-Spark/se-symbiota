@@ -87,5 +87,5 @@ RUN if [ -n "$CONFIG_DIR" ] && [ -d "$CONFIG_DIR" ]; then \
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
-# Start Apache in foreground
-ENTRYPOINT ["apache2-ctl", "-D", "FOREGROUND"]
+# Start Apache in foreground (binary is apache2ctl on Ubuntu)
+ENTRYPOINT ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]

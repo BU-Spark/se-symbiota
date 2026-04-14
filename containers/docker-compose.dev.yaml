@@ -10,9 +10,6 @@ services:
     build:
       context: ./ubuntuContainer
       dockerfile: Dockerfile
-      platforms:
-        - linux/amd64
-        - linux/arm64
     container_name: symbiota-web-dev
     ports:
       - "${HTTP_PORT:-8080}:80"
@@ -37,9 +34,6 @@ services:
     build:
       context: ./mysqlContainer
       dockerfile: Dockerfile
-      platforms:
-        - linux/amd64
-        - linux/arm64
     container_name: symbiota-db-dev
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
