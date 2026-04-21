@@ -23,9 +23,20 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 			<div style="float:left;;padding-right:10px;margin:2px 20px 0px 0px;"><?php echo $LANG['ROTATE']; ?>: <a href="#" onclick="rotateImage(-90, <?php echo $currentImageId; ?>); return false;">&nbsp;L&nbsp;</a> &lt;&gt; <a href="#" onclick="rotateImage(90, <?php echo $currentImageId; ?>); return false;">&nbsp;R&nbsp;</a></div>
 		</div>
 		<div id="labelprocessingdiv" style="clear:both;">
+			<?php
+			if (!isset($currentImageId)) {
+				$currentImageId = isset($currentImgId) && is_numeric($currentImgId) ? (int)$currentImgId : 0;
+			}
+			if (!isset($notesValue)) {
+				$notesValue = '';
+			}
+			if (!isset($imgUrlCollection) || !is_array($imgUrlCollection)) {
+				$imgUrlCollection = array();
+			}
+			?>
 			<div id="labeldiv-<?php echo $currentImageId; ?>">
 				<div>
-					<?php 
+					<?php
 					$currentImageUrl = isset($imgUrlCollection[$currentImageId]) ? $imgUrlCollection[$currentImageId] : '';
 					if (empty($currentImageUrl) && !empty($imgArr)) {
 						foreach ($imgArr as $img) {

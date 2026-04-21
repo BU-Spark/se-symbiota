@@ -35,20 +35,37 @@ if ($SYMB_UID) {
 	}
 }
 
-// For quick entry form 
+// For quick entry form
 $occManager = new OccurrenceEditorDeterminations();
 
-// get image ids from the images table
-$imgIDs = $occManager->getImgIDs();
-$firstImgId = $imgIDs[0];
-$firstBarcode = $occManager->getBarcode($firstImgId);
-$firstIndex = 0;
-$lastImgId = end($imgIDs);
-$lastBarcode = $occManager->getBarcode($lastImgId);
-$lastIndex = count($imgIDs) - 1;
+// Media IDs for quick entry: scope to this collection's first batch only.
+// Calling getImgIDs() with no args loads every image in `media` and can hang or OOM on large DBs.
+$imgIDs = array();
+if ($collid) {
+	$batches = $occManager->getBatch($collid);
+	if (!empty($batches)) {
+		$imgIDs = $occManager->getImgIDs($batches[0]);
+	}
+}
 $imgNum = count($imgIDs);
 $occData = array();
-$barcode = $occManager->getBarcode($firstIndex);
+if ($imgNum > 0) {
+	$firstImgId = $imgIDs[0];
+	$firstBarcode = $occManager->getBarcode($firstImgId);
+	$firstIndex = 0;
+	$lastImgId = $imgIDs[$imgNum - 1];
+	$lastBarcode = $occManager->getBarcode($lastImgId);
+	$lastIndex = $imgNum - 1;
+	$barcode = $occManager->getBarcode($firstImgId);
+} else {
+	$firstImgId = '';
+	$firstBarcode = null;
+	$firstIndex = 0;
+	$lastImgId = '';
+	$lastBarcode = null;
+	$lastIndex = -1;
+	$barcode = null;
+}
 ?>
 
 <!DOCTYPE html>
