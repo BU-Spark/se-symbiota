@@ -1190,8 +1190,9 @@ class OccurrenceEditorManager {
 		$status = '';
 		$imgId = filter_var($imgId, FILTER_SANITIZE_NUMBER_INT);
 		$notes = ($notes !== null) ? trim($notes) : null;
-		$rawNotes = ($rawNotes !== null) ? filter_var($rawNotes, FILTER_SANITIZE_STRING) : null;
-		$rawSource = ($rawSource !== null) ? filter_var($rawSource, FILTER_SANITIZE_STRING) : null;
+		// PHP 8.2+: FILTER_SANITIZE_STRING removed; strip_tags + trim matches prior intent for OCR fields
+		$rawNotes = ($rawNotes !== null) ? trim(strip_tags($rawNotes)) : null;
+		$rawSource = ($rawSource !== null) ? trim(strip_tags($rawSource)) : null;
 	
 		if ($imgId !== null) {
 	
