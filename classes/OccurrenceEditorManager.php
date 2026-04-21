@@ -1197,8 +1197,9 @@ class OccurrenceEditorManager {
 		$status = '';
 		$mediaID = filter_var($imgId, FILTER_SANITIZE_NUMBER_INT);
 		$notes = ($notes !== null) ? trim($notes) : null;
-		$rawNotes = ($rawNotes !== null) ? trim($rawNotes) : null;
-		$rawSource = ($rawSource !== null) ? trim($rawSource) : null;
+		// PHP 8.2+: strip_tags + trim replaces removed FILTER_SANITIZE_STRING for OCR metadata fields
+		$rawNotes = ($rawNotes !== null) ? trim(strip_tags($rawNotes)) : null;
+		$rawSource = ($rawSource !== null) ? trim(strip_tags($rawSource)) : null;
 	
 		if ($mediaID !== null) {
 	
