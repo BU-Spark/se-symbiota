@@ -1072,25 +1072,9 @@ function nextProcessingImage() {
 	document.getElementById('image-count').textContent = 'Image ' + (nextImageIndex + 1) + ' of ' + totalImages;
 	document.getElementById('activeimg').src = newImgSrc;
 
-	// Optionally update the onload event for the new image
 	document.getElementById('activeimg').onload = function() {
 		initImageTool('activeimg-' + nextImageIndex);
 	};
 
 	return false;
-}
-
-function rotateImage(rotationAngle){
-	var imgObj = document.getElementById("activeimg-0");
-	var imgAngle = 0;
-	if(imgObj.style.transform){
-		var transformValue = imgObj.style.transform;
-		imgAngle = parseInt(transformValue.substring(7));
-	}
-	imgAngle = imgAngle + rotationAngle;
-	if(imgAngle < 0) imgAngle = 360 + imgAngle;
-	else if(imgAngle == 360) imgAngle = 0;
-	imgObj.style.transform = "rotate("+imgAngle+"deg)";
-	$(imgObj).imagetool("option","rotationAngle",imgAngle);
-	$(imgObj).imagetool("reset");
 }
