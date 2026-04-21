@@ -23,13 +23,15 @@ else include_once($SERVER_ROOT.'/content/lang/collections/editor/includes/imgpro
 			<div style="float:left;;padding-right:10px;margin:2px 20px 0px 0px;"><?php echo $LANG['ROTATE']; ?>: <a href="#" onclick="rotateImage(-90)">&nbsp;L&nbsp;</a> &lt;&gt; <a href="#" onclick="rotateImage(90)">&nbsp;R&nbsp;</a></div>
 		</div>
 		<div id="labelprocessingdiv" style="clear:both;">
-			<?php 
-			$currentImageId = 0; 
+			<?php
+			$currentImageId = isset($currentImgId) && is_numeric($currentImgId) ? (int)$currentImgId : 0;
 			if(!isset($notesValue)) $notesValue = '';
+			if(!isset($imgUrlCollection) || !is_array($imgUrlCollection)) $imgUrlCollection = array();
+			$activeImgUrl = isset($imgUrlCollection[$currentImageId]) ? $imgUrlCollection[$currentImageId] : '';
 			?>
 			<div id="labeldiv-<?php echo $currentImageId; ?>">
 				<div> 
-					<img id="activeimg-<?php echo $currentImageId; ?>" src="<?php echo($imgUrlCollection[$currentImageId]) ?>" style="height:400px;" onload="initImageTool('activeimg-<?php echo $currentImageId; ?>')" />
+					<img id="activeimg-<?php echo $currentImageId; ?>" src="<?php echo $activeImgUrl; ?>" style="height:400px;" onload="initImageTool('activeimg-<?php echo $currentImageId; ?>')" />
 				</div>
 				<div style="width:100%; clear:both;">
 					<div style="float:right; margin-right:20px; font-weight:bold;">
