@@ -1,9 +1,10 @@
 # Symbiota MySQL Database Container
 #
-# Uses MySQL 5.7 for compatibility with Symbiota requirements
+# MySQL 8.0+ is required for dumps/schema that use utf8mb3 and other 8.0 features.
+# (MySQL 5.7 cannot restore mysqldump files produced by MySQL 8.)
 # Multi-architecture support (AMD64 + ARM64)
 
-FROM mysql:5.7.44
+FROM mysql:8.0.42
 
 # Build arguments for multi-arch support
 ARG TARGETPLATFORM
@@ -27,8 +28,8 @@ EXPOSE 3306
 # COPY init-schema.sql /docker-entrypoint-initdb.d/
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=5 \
+    CMD mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD || exit 1
 
 # Default command (runs mysqld)
 CMD ["mysqld"]

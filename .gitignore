@@ -18,3 +18,7 @@ includes/citationdataset.php
 includes/citationportal.php
 includes/donationButton.php
 temp/cap_storage.json
+
+# Container environment files (Feature/Containerization)
+.env*
+.docker-compose.*.tmp.yaml
