@@ -3,8 +3,6 @@
 # For local development with live code editing
 # Uses bind mounts for instant code changes without rebuild
 
-version: '3.8'
-
 services:
   symbiota:
     build:
@@ -15,8 +13,11 @@ services:
       - "${HTTP_PORT:-8080}:80"
     volumes:
       # Bind mount code for live editing
-      - ${PROJECT_ROOT:-./../..}:/var/www/html/symbiota${SELINUX_FLAG}
-      # Config overlay (optional, sourced by entrypoint if .env present)
+      - ${PROJECT_ROOT:-..}:/var/www/html/symbiota${SELINUX_FLAG}
+      # Config overlay mount — PROD only. The dev image runs apache2ctl directly and has
+      # no entrypoint that reads /config-overlay (see ubuntuContainer/Dockerfile), so this
+      # mount is a harmless no-op in dev. CONFIG_OVERLAY_DIR (runtime overlay source) is a
+      # SEPARATE variable from CONFIG_DIR (the prod build-arg in the Makefile) — finding B3.
       - ${CONFIG_OVERLAY_DIR:-./containers}/.env:/config-overlay/.env:ro${SELINUX_FLAG}
       # Separate data directories (on different filesystem for large datasets)
       # Uncomment these if using bootstrap-symbiota.sh or separate storage

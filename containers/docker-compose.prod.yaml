@@ -11,8 +11,6 @@
 #   Images are built automatically from v3.2.4-alpha branch
 #   Pull and restart to deploy: docker-compose pull && docker-compose up -d
 
-version: '3.8'
-
 services:
   symbiota:
     # Build from source (recommended for community deployments)
